@@ -276,6 +276,7 @@ wic64_handle_timeout:
     sta wic64_transfer_size
     sta wic64_transfer_size+1
 .done
+    clc
 }
 
 ; ********************************************************
@@ -449,7 +450,6 @@ wic64_receive_response_header
 }
 
 wic64_receive
-.receive
     ldx wic64_bytes_to_transfer+1
     beq .receive_remaining_bytes
 
