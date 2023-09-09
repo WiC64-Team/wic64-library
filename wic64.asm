@@ -774,8 +774,25 @@ wic64_load_and_run:
 }
 
 wic64_return_to_portal: !zone wic64_return_to_portal {
-    +wic64_load_and_run .portal
+    ; if the portal loads sucessfully, this routine
+    ; never returns. This if it returns, something went
+    ; wrong (e.g. no network, server busy, etc)
+
+    ; retry at most 16 times
+    lda #$10
+    sta .retries
+
+-   +wic64_load_and_run .portal
+
+    ; failed to load portal, keep trying...
+    dec .retries
+    bne -
+
+    ; max number of retries reached, return and let
+    ; the caller handle this further
     rts
+
+    .retries: !byte $00
 
     .portal:
     !text "W", .portal_url_end - .portal_url + 4, $00, $01
