@@ -319,16 +319,17 @@ wic64_initialize
 
 ; ********************************************************
 
-!macro wic64_send {
-    jsr wic64_send
+!macro wic64_send_request_header {
+    ; request must be set beforehand
+    jsr wic64_send_request_header
 }
 
-!macro wic64_send .request {
+!macro wic64_send_request_header .request {
     +wic64_set_request .request
-    jsr wic64_send
+    jsr wic64_send_request_header
 }
 
-wic64_send
+wic64_send_request_header
     ; ask esp to switch to input
     lda $dd00
     ora #$04
@@ -349,8 +350,53 @@ wic64_send
     lda (wic64_request_pointer),y
     sta wic64_request_size+1
 
-.send
-    ldx wic64_request_size+1
+    ; transfer header only
+    lda #$04
+    sta wic64_bytes_to_transfer
+    lda #$00
+    sta wic64_bytes_to_transfer+1
+
+    jsr wic64_send
+
+    ; advance request pointer beyond header
+    lda wic64_request_pointer
+    clc
+    adc #$04
+    sta wic64_request_pointer
+    lda wic64_request_pointer+1
+    adc #$00
+    sta wic64_request_pointer+1
+    clc
+
+    rts
+
+; ********************************************************
+
+!macro wic64_send {
+    ; request must be set beforehand
+    +wic64_prepare_transfer_of_remaining_bytes
+    jsr wic64_send
+}
+
+!macro wic64_send .request {
+    +wic64_set_request .request
+    +wic64_prepare_transfer_of_remaining_bytes
+    jsr wic64_send
+}
+
+!macro wic64_send .request, .size {
+    +wic64_set_request .request
+
+    lda #<.size
+    sta wic64_bytes_to_transfer
+    lda #>.size+1
+    sta wic64_bytes_to_transfer+1
+
+    jsr wic64_send
+}
+
+wic64_send
+    ldx wic64_bytes_to_transfer+1
     beq .send_remaining_bytes
 
 .send_pages
@@ -367,7 +413,7 @@ wic64_send
     bne -
 
 .send_remaining_bytes
-    ldx wic64_request_size
+    ldx wic64_bytes_to_transfer
     beq .send_done
 
     ldy #$00
@@ -380,6 +426,7 @@ wic64_send
     bne -
 
 .send_done
+    +wic64_update_transfer_size_after_transfer
     rts
 
 ; ********************************************************
@@ -427,7 +474,7 @@ wic64_receive_response_header
 ; ********************************************************
 
 !macro wic64_receive {
-    ; response must have been set beforehand
+    ; response must be set beforehand
     +wic64_prepare_transfer_of_remaining_bytes
     jsr wic64_receive
 }
@@ -548,6 +595,7 @@ wic64_finalize
 wic64_execute
     +wic64_initialize
     +wic64_branch_on_timeout +
+    +wic64_send_request_header
     +wic64_send
     +wic64_receive_response_header
     +wic64_receive
@@ -581,6 +629,7 @@ wic64_load_and_run:
 
     +wic64_initialize
     +wic64_branch_on_timeout +
+    +wic64_send_request_header
     +wic64_send
     +wic64_receive_response_header
     jmp .check_response_size
