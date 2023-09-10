@@ -645,11 +645,11 @@ wic64_load_and_run:
     ; we can assume that an error has occured,
     ; e.g. a 404, server was busy, or the
     ; requested command did not return data, etc.
-    lda wic64_response_size+1
+    lda wic64_transfer_size+1
     bne .ready_to_receive
 
     lda #$02
-    cmp wic64_response_size
+    cmp wic64_transfer_size
     bcc .ready_to_receive
 
 .server_error
@@ -692,9 +692,9 @@ wic64_load_and_run:
     bne -
 
     ; transfer response size to tapebuffer location
-    lda wic64_response_size
+    lda wic64_transfer_size
     sta .response_size
-    lda wic64_response_size+1
+    lda wic64_transfer_size+1
     sta .response_size+1
 
     jmp .tapebuffer
