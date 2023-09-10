@@ -113,7 +113,6 @@ wic64_user_timeout_handler !word $0000
 ; added for every byte transferred.
 
 !macro wic64_wait_for_handshake_code {
-
     ; wait until a handshake has been received from the ESP,
     ; e.g. the FLAG2 line on the userport has been asserted,
     ; with sets bit 4 of $dd0d. Set the carry flag to indicate
@@ -163,68 +162,6 @@ wic64_user_timeout_handler !word $0000
 
 .success
 }
-
-; ********************************************************
-
-wic64_handle_timeout:
-    ; call stack when not optimized for size (wait_for_handshake macro)
-    ;
-    ; - user code
-    ;   - wic64_* api subroutine
-    ;   - wait_for_handshake macro
-    ;
-    ; call stack when optimized for size (wait_for_handshake subroutine)
-    ;
-    ; - user code
-    ;   - wic64_* api subroutine
-    ;     - wait_for_handshake subroutine
-    ;
-    ; we need to be able to rts to the user routine, so if the
-    ; code is optimized for size, we discard the last return
-    ; address on the stack:
-
-    !if (wic64_optimize_for_size != 0) {
-        pla
-        pla
-    }
-
-    ; if a timeout handler was installed, jmp to the given
-    ; address on the same call stack level as the user code
-    ; calling the wic64_* subroutine, else just rts.
-
-    ; save user timeout handler temporarily
-    ; (will be unset by wic64_finalize)
-    lda wic64_user_timeout_handler
-    sta .timeout_handler
-    lda wic64_user_timeout_handler+1
-    sta .timeout_handler+1
-
-    ; finalize automatically on timeouts
-    jsr wic64_finalize
-
-    ; set carry to indicate timeout
-    sec
-
-    ; check for user timeout handler != $0000
-    lda .timeout_handler
-    bne .call_timeout_handler
-    lda .timeout_handler+1
-    bne .call_timeout_handler
-
-.no_timeout_handler:
-    ; the user will have to handle the error manually
-    ; after each wic64_* call
-    rts
-
-.call_timeout_handler:
-    ; discard return address on stack and jump, i.e.
-    ; act as if we simply branch inside the users routine
-    ; itself (one level up)
-    pla
-    pla
-    jmp (.timeout_handler)
-
-.timeout_handler !word $0000
 
 ; ********************************************************
 
@@ -559,6 +496,68 @@ wic64_finalize
 
 +   sei
     rts
+
+; ********************************************************
+
+wic64_handle_timeout:
+    ; call stack when not optimized for size (wait_for_handshake macro)
+    ;
+    ; - user code
+    ;   - wic64_* api subroutine
+    ;   - wait_for_handshake macro
+    ;
+    ; call stack when optimized for size (wait_for_handshake subroutine)
+    ;
+    ; - user code
+    ;   - wic64_* api subroutine
+    ;     - wait_for_handshake subroutine
+    ;
+    ; we need to be able to rts to the user routine, so if the
+    ; code is optimized for size, we discard the last return
+    ; address on the stack:
+
+    !if (wic64_optimize_for_size != 0) {
+        pla
+        pla
+    }
+
+    ; if a timeout handler was installed, jmp to the given
+    ; address on the same call stack level as the user code
+    ; calling the wic64_* subroutine, else just rts.
+
+    ; save user timeout handler temporarily
+    ; (will be unset by wic64_finalize)
+    lda wic64_user_timeout_handler
+    sta .timeout_handler
+    lda wic64_user_timeout_handler+1
+    sta .timeout_handler+1
+
+    ; finalize automatically on timeouts
+    jsr wic64_finalize
+
+    ; set carry to indicate timeout
+    sec
+
+    ; check for user timeout handler != $0000
+    lda .timeout_handler
+    bne .call_timeout_handler
+    lda .timeout_handler+1
+    bne .call_timeout_handler
+
+.no_timeout_handler:
+    ; the user will have to handle the error manually
+    ; after each wic64_* call
+    rts
+
+.call_timeout_handler:
+    ; discard return address on stack and jump, i.e.
+    ; act as if we simply branch inside the users routine
+    ; itself (one level up)
+    pla
+    pla
+    jmp (.timeout_handler)
+
+.timeout_handler !word $0000
 
 ; ********************************************************
 ; wic64_execute
