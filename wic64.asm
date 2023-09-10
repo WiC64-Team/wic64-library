@@ -190,13 +190,21 @@ wic64_user_timeout_handler !word $0000
 ; ********************************************************
 
 !macro wic64_prepare_transfer_of_remaining_bytes {
+    jsr wic64_prepare_transfer_of_remaining_bytes
+}
+
+wic64_prepare_transfer_of_remaining_bytes:
     lda wic64_transfer_size
     sta wic64_bytes_to_transfer
     lda wic64_transfer_size+1
     sta wic64_bytes_to_transfer+1
-}
+    rts
 
 !macro wic64_update_transfer_size_after_transfer {
+    jsr wic64_update_transfer_size_after_transfer
+}
+
+wic64_update_transfer_size_after_transfer: !zone {
     lda wic64_transfer_size
     sec
     sbc wic64_bytes_to_transfer
@@ -212,6 +220,7 @@ wic64_user_timeout_handler !word $0000
     sta wic64_transfer_size+1
 .done
     clc
+    rts
 }
 
 ; ********************************************************
