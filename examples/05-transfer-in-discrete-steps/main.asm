@@ -23,7 +23,7 @@ main:
 
     ; then send the image data from the relevant memory areas
     ; in a single echo request
-    +wic64_send_request_header echo_request
+    +wic64_send_header echo_request
     +wic64_send bitmap, 8000
     +wic64_send screen, 1000
     +wic64_send color, 1000
@@ -33,7 +33,7 @@ main:
 
     ; receive the image data again and transfer it back
     ; to the relevant memory areas
-    +wic64_receive_response_header
+    +wic64_receive_header
     +wic64_receive bitmap, 8000
     +wic64_receive screen, 1000
     +wic64_receive color, 1000

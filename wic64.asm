@@ -263,17 +263,17 @@ wic64_initialize
 
 ; ********************************************************
 
-!macro wic64_send_request_header {
+!macro wic64_send_header {
     ; request must be set beforehand
-    jsr wic64_send_request_header
+    jsr wic64_send_header
 }
 
-!macro wic64_send_request_header .request {
+!macro wic64_send_header .request {
     +wic64_set_request .request
-    jsr wic64_send_request_header
+    jsr wic64_send_header
 }
 
-wic64_send_request_header
+wic64_send_header
     ; ask esp to switch to input
     lda $dd00
     ora #$04
@@ -395,11 +395,11 @@ wic64_send
 
 ; ********************************************************
 
-!macro wic64_receive_response_header {
-    jsr wic64_receive_response_header
+!macro wic64_receive_header {
+    jsr wic64_receive_header
 }
 
-wic64_receive_response_header
+wic64_receive_header
     jsr .change_transfer_direction
 
     ; response size is sent in big-endian for unknown reasons
@@ -601,9 +601,9 @@ wic64_handle_timeout:
 wic64_execute
     +wic64_initialize
     +wic64_branch_on_timeout +
-    +wic64_send_request_header
+    +wic64_send_header
     +wic64_send
-    +wic64_receive_response_header
+    +wic64_receive_header
     +wic64_receive
     +wic64_finalize
 +   rts
@@ -635,9 +635,9 @@ wic64_load_and_run:
 
     +wic64_initialize
     +wic64_branch_on_timeout +
-    +wic64_send_request_header
+    +wic64_send_header
     +wic64_send
-    +wic64_receive_response_header
+    +wic64_receive_header
     jmp .check_response_size
 
 .check_response_size
