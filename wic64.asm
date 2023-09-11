@@ -53,8 +53,9 @@
 ; may need to be adjusted, e.g. when a HTTP request is sent
 ; to a server that is slow to respond.
 ;
-; The enforced minimum value is $01, which corresponds to
-; a timeout of approximately one second.
+; The minimum value is $01, which corresponds to a timeout
+; of approximately one second. Setting this value to zero
+; sets the value to $01.
 ;
 ; If a timeout occurs, the carry flag will be set to signal
 ; a timeout to the calling routine.
