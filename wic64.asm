@@ -53,9 +53,8 @@
 ; may need to be adjusted, e.g. when a HTTP request is sent
 ; to a server that is slow to respond.
 ;
-; The minimum value is $02, which corresponds to a timeout
-; of approximately two seconds. If a value lower than $02
-; is specified, $02 will be used by default.
+; The enforced minimum value is $01, which corresponds to
+; a timeout of approximately one second.
 ;
 ; If a timeout occurs, the carry flag will be set to signal
 ; a timeout to the calling routine.
@@ -129,13 +128,17 @@ wic64_user_timeout_handler !word $0000
     }
 
     ; no fast response, setup timeout delay loop
-
-+   lda wic64_timeout
++   lda #$00
+    sta wic64_counters+0
+    lda wic64_timeout
     sta wic64_counters+1
     sta wic64_counters+2
+    cmp #$01
+    bne +
+    lda #$48
+    sta wic64_counters+1
 
-    ; keep testing for FLAG2 until all counters are zero
-
++   ; keep testing for FLAG2 until all counters are zero
     lda #$10
 .wait
     bit $dd0d
@@ -146,7 +149,7 @@ wic64_user_timeout_handler !word $0000
         rts
     }
 
-+   dec wic64_counters
++   dec wic64_counters+0
     bne .wait
 
     dec wic64_counters+1
@@ -235,10 +238,10 @@ wic64_initialize
 
     ; make sure timeout is at least $02
     lda wic64_timeout
-    cmp #$02
+    cmp #$01
     bcs +
 
-    lda #$02
+    lda #$01
     sta wic64_timeout
 
     ; remember current state of cpu interrupt flag
@@ -375,7 +378,11 @@ wic64_send
 
 ; ********************************************************
 
-.change_transfer_direction
+!macro wic64_receive_header {
+    jsr wic64_receive_header
+}
+
+wic64_receive_header:
     ; switch userport to input
     lda #$00
     sta $dd03
@@ -390,17 +397,6 @@ wic64_send
 
     ; esp now expects a handshake (accessing $dd01 asserts PC2 line)
     lda $dd01
-
-    rts
-
-; ********************************************************
-
-!macro wic64_receive_header {
-    jsr wic64_receive_header
-}
-
-wic64_receive_header
-    jsr .change_transfer_direction
 
     ; response size is sent in big-endian for unknown reasons
     +.wait_for_handshake
