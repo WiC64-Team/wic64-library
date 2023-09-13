@@ -7,12 +7,8 @@
 ; including this file to change the defaults.
 ;*********************************************************
 
-!ifndef wic64_request_pointer {
-    wic64_request_pointer = $22
-}
-
-!ifndef wic64_response_pointer {
-    wic64_response_pointer = $24
+!ifndef wic64_zeropage_pointer {
+    wic64_zeropage_pointer = $22
 }
 
 !ifndef wic64_optimize_for_size {
@@ -83,6 +79,9 @@ wic64_dont_disable_irqs !byte $00
 ; ********************************************************
 ; Globals
 ; ********************************************************
+
+wic64_request: !word $0000
+wic64_response: !word $0000
 wic64_transfer_size !word $0000
 
 ; these label should be local, but unfortunately acmes
@@ -94,6 +93,22 @@ wic64_user_timeout_handler !word $0000
 ; Locals
 ; ********************************************************
 .user_irq_flag: !byte $00
+
+; ********************************************************
+
+!macro wic64_set_zeropage_pointer_from .addr {
+    lda .addr
+    sta wic64_zeropage_pointer
+    lda .addr+1
+    sta wic64_zeropage_pointer+1
+}
+
+!macro wic64_set_zeropage_pointer_to .addr {
+    lda #<.addr
+    sta wic64_zeropage_pointer
+    lda #>.addr
+    sta wic64_zeropage_pointer+1
+}
 
 ; ********************************************************
 ; Define macro .wait_for_handshake
@@ -290,12 +305,14 @@ wic64_send_header
     ; get request size, which is the size of the complete
     ; request, including the request header
 
+    +wic64_set_zeropage_pointer_from wic64_request
+
     ldy #$01
-    lda (wic64_request_pointer),y
+    lda (wic64_zeropage_pointer),y
     sta wic64_transfer_size
 
     iny
-    lda (wic64_request_pointer),y
+    lda (wic64_zeropage_pointer),y
     sta wic64_transfer_size+1
 
     ; transfer header only
@@ -307,13 +324,13 @@ wic64_send_header
     jsr wic64_send
 
     ; advance request pointer beyond header
-    lda wic64_request_pointer
+    lda wic64_zeropage_pointer
     clc
     adc #$04
-    sta wic64_request_pointer
-    lda wic64_request_pointer+1
+    sta wic64_zeropage_pointer
+    lda wic64_zeropage_pointer+1
     adc #$00
-    sta wic64_request_pointer+1
+    sta wic64_zeropage_pointer+1
     clc
 
     rts
@@ -335,6 +352,8 @@ wic64_send_header
 !macro wic64_send .request, .size {
     +wic64_set_request .request
 
+    +wic64_set_zeropage_pointer_from wic64_request
+
     lda #<.size
     sta wic64_bytes_to_transfer
     lda #>.size+1
@@ -349,14 +368,14 @@ wic64_send
 
 .send_pages
     ldy #$00
--   lda (wic64_request_pointer),y
+-   lda (wic64_zeropage_pointer),y
     sta $dd01
     +.wait_for_handshake
 
     iny
     bne -
 
-    inc wic64_request_pointer+1
+    inc wic64_zeropage_pointer+1
     dex
     bne -
 
@@ -365,7 +384,7 @@ wic64_send
     beq .send_done
 
     ldy #$00
--   lda (wic64_request_pointer),y
+-   lda (wic64_zeropage_pointer),y
     sta $dd01
     +.wait_for_handshake
 
@@ -438,6 +457,8 @@ wic64_receive_header:
 }
 
 wic64_receive
+    +wic64_set_zeropage_pointer_from wic64_response
+
     ldx wic64_bytes_to_transfer+1
     beq .receive_remaining_bytes
 
@@ -446,11 +467,11 @@ wic64_receive
 
 -   +.wait_for_handshake
     lda $dd01
-    sta (wic64_response_pointer),y
+    sta (wic64_zeropage_pointer),y
     iny
     bne -
 
-    inc wic64_response_pointer+1
+    inc wic64_zeropage_pointer+1
     dex
     bne -
 
@@ -461,7 +482,7 @@ wic64_receive
     ldy #$00
 -   +.wait_for_handshake
     lda $dd01
-    sta (wic64_response_pointer),y
+    sta (wic64_zeropage_pointer),y
 
     iny
     dex
@@ -569,16 +590,16 @@ wic64_handle_timeout:
 
 !macro wic64_set_request .request {
     lda #<.request
-    sta wic64_request_pointer
+    sta wic64_request
     lda #>.request
-    sta wic64_request_pointer+1
+    sta wic64_request+1
 }
 
 !macro wic64_set_response .response {
     lda #<.response
-    sta wic64_response_pointer
+    sta wic64_response
     lda #>.response
-    sta wic64_response_pointer+1
+    sta wic64_response+1
 }
 
 !macro wic64_execute .request, .response {
@@ -652,10 +673,7 @@ wic64_load_and_run:
 .server_error
     ; we still adhere to protocol and finish the transfer
     ; by receiving the response to the tape buffer
-    lda #<.tapebuffer
-    sta wic64_response_pointer
-    lda #>.tapebuffer
-    sta wic64_response_pointer+1
+    +wic64_set_zeropage_pointer_to .tapebuffer
 
     jsr wic64_receive
 
@@ -678,7 +696,7 @@ wic64_load_and_run:
     ; response size if a url ends in ".prg"...
 
     ; always load to $0801
-    +wic64_set_response $0801
+    +wic64_set_zeropage_pointer_to $0801
 
     ; copy receive-and-run-routine to tape buffer
     ldx #$00
@@ -715,11 +733,11 @@ wic64_load_and_run:
     and #$10
     beq -
     lda $dd01
-    sta (wic64_response_pointer),y
+    sta (wic64_zeropage_pointer),y
     iny
     bne -
 
-    inc wic64_response_pointer+1
+    inc wic64_zeropage_pointer+1
     dex
     bne -
 
@@ -731,7 +749,7 @@ wic64_load_and_run:
     and #$10
     beq -
     lda $dd01
-    sta (wic64_response_pointer),y
+    sta (wic64_zeropage_pointer),y
 
     iny
     dex
@@ -814,8 +832,7 @@ wic64_return_to_portal: !zone wic64_return_to_portal {
 
 !ifdef wic64_debug {
     !if (wic64_debug != 0) {
-        !warn "wic64_request_pointer = ", wic64_request_pointer
-        !warn "wic64_response_pointer = ", wic64_response_pointer
+        !warn "wic64_zeropage_pointer = ", wic64_zeropage_pointer
         !warn "wic64_include_load_and_run = ", wic64_include_load_and_run
         !warn "wic64_include_return_to_portal = ", wic64_include_return_to_portal
         !warn "wic64_optimize_for_size = ", wic64_optimize_for_size
