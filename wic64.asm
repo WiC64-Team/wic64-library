@@ -83,6 +83,7 @@ wic64_dont_disable_irqs !byte $00
 wic64_request: !word $0000
 wic64_response: !word $0000
 wic64_transfer_size !word $0000
+wic64_response_size !word $0000
 
 ; these label should be local, but unfortunately acmes
 ; limited scoping requires these labels to be global
@@ -421,11 +422,13 @@ wic64_receive_header:
     ; response size is sent in big-endian for unknown reasons
     +.wait_for_handshake
     lda $dd01
+    sta wic64_response_size+1
     sta wic64_transfer_size+1
     sta wic64_bytes_to_transfer+1
 
     +.wait_for_handshake
     lda $dd01
+    sta wic64_response_size
     sta wic64_transfer_size
     sta wic64_bytes_to_transfer
 
