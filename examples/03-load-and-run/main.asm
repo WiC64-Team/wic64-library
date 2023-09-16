@@ -9,7 +9,7 @@ wic64_include_load_and_run = 1
 
 main:
     +wic64_load_and_run gianna
-    rts
+    rts ; should never be reached
 
 gianna:
 !text "W", gianna_url_end - gianna_url + 4, $00, $01

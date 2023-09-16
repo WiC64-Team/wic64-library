@@ -112,7 +112,7 @@ wic64_user_timeout_handler !word $0000
 }
 
 ; ********************************************************
-; Define macro .wait_for_handshake
+; Define macro wic64_wait_for_handshake
 ; ********************************************************
 ;
 ; If wic64_optimize_for_size is set to a nonzero value,
@@ -184,16 +184,16 @@ wic64_user_timeout_handler !word $0000
 ; ********************************************************
 
 !if (wic64_optimize_for_size == 0) {
-    !macro .wait_for_handshake {
+    !macro wic64_wait_for_handshake {
         +wic64_wait_for_handshake_code
     }
 } else {
     wic64_wait_for_handshake_routine !zone {
         +wic64_wait_for_handshake_code
-        ; rts is done from macro code
+        ; rts is already handled in macro code
     }
 
-    !macro .wait_for_handshake {
+    !macro wic64_wait_for_handshake {
         jsr wic64_wait_for_handshake_routine
     }
 }
@@ -205,6 +205,13 @@ wic64_user_timeout_handler !word $0000
     sta wic64_user_timeout_handler
     lda #>.addr
     sta wic64_user_timeout_handler+1
+}
+
+; ********************************************************
+
+!macro wic64_set_timeout .timeout {
+    lda #.timeout
+    sta wic64_timeout
 }
 
 ; ********************************************************
@@ -371,7 +378,7 @@ wic64_send
     ldy #$00
 -   lda (wic64_zeropage_pointer),y
     sta $dd01
-    +.wait_for_handshake
+    +wic64_wait_for_handshake
 
     iny
     bne -
@@ -387,7 +394,7 @@ wic64_send
     ldy #$00
 -   lda (wic64_zeropage_pointer),y
     sta $dd01
-    +.wait_for_handshake
+    +wic64_wait_for_handshake
 
     iny
     dex
@@ -414,19 +421,19 @@ wic64_receive_header:
     sta $dd00
 
     ; esp now sends a handshake to confirm change of direction
-    +.wait_for_handshake
+    +wic64_wait_for_handshake
 
     ; esp now expects a handshake (accessing $dd01 asserts PC2 line)
     lda $dd01
 
     ; response size is sent in big-endian for unknown reasons
-    +.wait_for_handshake
+    +wic64_wait_for_handshake
     lda $dd01
     sta wic64_response_size+1
     sta wic64_transfer_size+1
     sta wic64_bytes_to_transfer+1
 
-    +.wait_for_handshake
+    +wic64_wait_for_handshake
     lda $dd01
     sta wic64_response_size
     sta wic64_transfer_size
@@ -468,7 +475,7 @@ wic64_receive
 .receive_pages
     ldy #$00
 
--   +.wait_for_handshake
+-   +wic64_wait_for_handshake
     lda $dd01
     sta (wic64_zeropage_pointer),y
     iny
@@ -483,7 +490,7 @@ wic64_receive
     beq .receive_done
 
     ldy #$00
--   +.wait_for_handshake
+-   +wic64_wait_for_handshake
     lda $dd01
     sta (wic64_zeropage_pointer),y
 
@@ -685,10 +692,10 @@ wic64_load_and_run:
 
 .ready_to_receive
     ; receive and discard load address...
-    +.wait_for_handshake
+    +wic64_wait_for_handshake
     lda $dd01
 
-    +.wait_for_handshake
+    +wic64_wait_for_handshake
     lda $dd01
 
     ; now it would be correct to subtract two bytes
