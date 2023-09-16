@@ -38,10 +38,8 @@ loop:
     and #!$10
     sta $d011
 
-    ; tell wic64-library not to disable
-    ; interrupts during transfers
-    lda #$01
-    sta wic64_dont_disable_irqs
+    ; don't disable irqs during transfers
+    +wic64_dont_disable_irqs
 
     ; execute simple echo command
     +wic64_execute request, response

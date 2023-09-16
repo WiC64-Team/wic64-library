@@ -59,7 +59,12 @@
 ; Higher values will increase the timeout in a non-linear
 ; fashion.
 
-wic64_timeout !byte $02
+wic64_timeout !byte $01
+
+!macro wic64_set_timeout .timeout {
+    lda #.timeout
+    sta wic64_timeout
+}
 
 ; wic64_dont_disable_irqs
 ;
@@ -75,6 +80,16 @@ wic64_timeout !byte $02
 ; The default is to disable irqs during transfer.
 ;
 wic64_dont_disable_irqs !byte $00
+
+!macro wic64_dont_disable_irqs {
+    lda #$01
+    sta wic64_dont_disable_irqs
+}
+
+!macro wic64_do_disable_irqs {
+    lda #$00
+    sta wic64_dont_disable_irqs
+}
 
 ; ********************************************************
 ; Globals
@@ -205,13 +220,6 @@ wic64_user_timeout_handler !word $0000
     sta wic64_user_timeout_handler
     lda #>.addr
     sta wic64_user_timeout_handler+1
-}
-
-; ********************************************************
-
-!macro wic64_set_timeout .timeout {
-    lda #.timeout
-    sta wic64_timeout
 }
 
 ; ********************************************************
