@@ -290,8 +290,8 @@ wic64_initialize
 
 +   ; set pa2 to output
     lda $dd02
-	ora #$04
-	sta $dd02
+    ora #$04
+    sta $dd02
 
     clc ; carry will be set if transfer times out
     rts
