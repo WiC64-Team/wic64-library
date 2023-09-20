@@ -8,7 +8,7 @@
 ;*********************************************************
 
 !ifndef wic64_zeropage_pointer {
-    wic64_zeropage_pointer = $22
+    wic64_zeropage_pointer = $22 ; EXPORT
 }
 
 !ifndef wic64_optimize_for_size {
@@ -31,6 +31,10 @@
 
 !ifndef wic64_optimize_for_size {
     wic64_optimize_for_size = 0
+}
+
+!ifndef wic64_use_unused_labels {
+    wic64_use_unused_labels = 0
 }
 
 ;*********************************************************
@@ -59,14 +63,14 @@
 ; Higher values will increase the timeout in a non-linear
 ; fashion.
 
-wic64_timeout !byte $01
-
 !macro wic64_set_timeout .timeout {
     lda #.timeout
     sta wic64_timeout
 }
 
-; wic64_dont_disable_irqs
+;*********************************************************
+
+; macros wic64_dont_disable_irqs and wic64_do_disable_irqs
 ;
 ; Set to a nonzero value to prevent disabling of
 ; interrupts during transfers.
@@ -79,38 +83,22 @@ wic64_timeout !byte $01
 ;
 ; The default is to disable irqs during transfer.
 ;
-wic64_dont_disable_irqs !byte $00
+
+;*********************************************************
 
 !macro wic64_dont_disable_irqs {
     lda #$01
     sta wic64_dont_disable_irqs
 }
 
+;*********************************************************
+
 !macro wic64_do_disable_irqs {
     lda #$00
     sta wic64_dont_disable_irqs
 }
 
-; ********************************************************
-; Globals
-; ********************************************************
-
-wic64_request: !word $0000
-wic64_response: !word $0000
-wic64_transfer_size !word $0000
-wic64_response_size !word $0000
-
-; these label should be local, but unfortunately acmes
-; limited scoping requires these labels to be global
-wic64_counters !byte $00, $00, $00
-wic64_user_timeout_handler !word $0000
-
-; ********************************************************
-; Locals
-; ********************************************************
-.user_irq_flag: !byte $00
-
-; ********************************************************
+;*********************************************************
 
 !macro wic64_set_zeropage_pointer_from .addr {
     lda .addr
@@ -214,6 +202,51 @@ wic64_user_timeout_handler !word $0000
 }
 
 ; ********************************************************
+; Data Section
+; ********************************************************
+
+wic64_data_section_start: ; EXPORT
+
+; ********************************************************
+; Globals
+; ********************************************************
+
+wic64_timeout:           !byte $01    ; EXPORT
+wic64_dont_disable_irqs: !byte $00    ; EXPORT
+wic64_request:           !word $0000  ; EXPORT
+wic64_response:          !word $0000  ; EXPORT
+wic64_transfer_size:     !word $0000  ; EXPORT
+wic64_response_size:     !word $0000  ; EXPORT
+wic64_bytes_to_transfer: !word $0000  ; EXPORT
+
+; these label should be local, but unfortunately acmes
+; limited scoping requires these labels to be global:
+
+wic64_counters: !byte $00, $00, $00
+wic64_user_timeout_handler: !word $0000
+
+; ********************************************************
+; Locals
+; ********************************************************
+
+.user_irq_flag: !byte $00
+.timeout_handler: !word $0000
+
+!if (wic64_include_return_to_portal != 0) {
+
+.portal_retries: !byte $00
+
+.portal_request:
+!text "W", .portal_url_end - .portal_url + 4, $00, $01
+.portal_url:
+!text "http://x.wic64.net/menue.prg"
+.portal_url_end:
+
+}
+
+; ********************************************************
+
+wic64_data_section_end: ; EXPORT
 
 !macro wic64_branch_on_timeout .addr {
     lda #<.addr
@@ -224,38 +257,14 @@ wic64_user_timeout_handler !word $0000
 
 ; ********************************************************
 
-!macro wic64_prepare_transfer_of_remaining_bytes {
-    jsr wic64_prepare_transfer_of_remaining_bytes
-}
-
-wic64_prepare_transfer_of_remaining_bytes:
-    lda wic64_transfer_size
-    sta wic64_bytes_to_transfer
-    lda wic64_transfer_size+1
-    sta wic64_bytes_to_transfer+1
-    rts
-
 !macro wic64_update_transfer_size_after_transfer {
     jsr wic64_update_transfer_size_after_transfer
 }
 
-wic64_update_transfer_size_after_transfer: !zone {
-    lda wic64_transfer_size
-    sec
-    sbc wic64_bytes_to_transfer
-    sta wic64_transfer_size
+; ********************************************************
 
-    lda wic64_transfer_size+1
-    sbc wic64_bytes_to_transfer+1
-    sta wic64_transfer_size+1
-    bcs .done
-
-    lda #$00
-    sta wic64_transfer_size
-    sta wic64_transfer_size+1
-.done
-    clc
-    rts
+!macro wic64_prepare_transfer_of_remaining_bytes {
+    jsr wic64_prepare_transfer_of_remaining_bytes
 }
 
 ; ********************************************************
@@ -264,11 +273,11 @@ wic64_update_transfer_size_after_transfer: !zone {
     jsr wic64_initialize
 }
 
-wic64_initialize
+wic64_initialize: ; EXPORT
     ; always start with a cleared FLAG2 bit in $dd0d
     lda $dd0d
 
-    ; make sure timeout is at least $02
+    ; make sure timeout is at least $01
     lda wic64_timeout
     cmp #$01
     bcs +
@@ -308,7 +317,7 @@ wic64_initialize
     jsr wic64_send_header
 }
 
-wic64_send_header
+wic64_send_header: ; EXPORT
     ; ask esp to switch to input
     lda $dd00
     ora #$04
@@ -367,7 +376,6 @@ wic64_send_header
 
 !macro wic64_send .request, .size {
     +wic64_set_request .request
-
     +wic64_set_zeropage_pointer_from wic64_request
 
     lda #<.size
@@ -378,18 +386,23 @@ wic64_send_header
     jsr wic64_send
 }
 
-wic64_send
+wic64_send: ; EXPORT
     ldx wic64_bytes_to_transfer+1
     beq .send_remaining_bytes
 
 .send_pages
     ldy #$00
+
+.wic64_send_critical_begin:
+
 -   lda (wic64_zeropage_pointer),y
     sta $dd01
     +wic64_wait_for_handshake
 
     iny
     bne -
+
+.wic64_send_critical_end:
 
     inc wic64_zeropage_pointer+1
     dex
@@ -418,7 +431,7 @@ wic64_send
     jsr wic64_receive_header
 }
 
-wic64_receive_header:
+wic64_receive_header: ; EXPORT
     ; switch userport to input
     lda #$00
     sta $dd03
@@ -474,14 +487,16 @@ wic64_receive_header:
     jsr wic64_receive
 }
 
-wic64_receive
+wic64_receive: ; EXPORT
     +wic64_set_zeropage_pointer_from wic64_response
 
     ldx wic64_bytes_to_transfer+1
     beq .receive_remaining_bytes
 
-.receive_pages
+.receive_pages:
     ldy #$00
+
+.wic64_receive_critical_begin:
 
 -   +wic64_wait_for_handshake
     lda $dd01
@@ -489,11 +504,13 @@ wic64_receive
     iny
     bne -
 
+.wic64_receive_critical_end:
+
     inc wic64_zeropage_pointer+1
     dex
     bne -
 
-.receive_remaining_bytes
+.receive_remaining_bytes:
     ldx wic64_bytes_to_transfer
     beq .receive_done
 
@@ -506,11 +523,9 @@ wic64_receive
     dex
     bne -
 
-.receive_done
+.receive_done:
     +wic64_update_transfer_size_after_transfer
     rts
-
-wic64_bytes_to_transfer !word $0000
 
 ; ********************************************************
 
@@ -518,7 +533,7 @@ wic64_bytes_to_transfer !word $0000
     jsr wic64_finalize
 }
 
-wic64_finalize
+wic64_finalize: ; EXPORT
     ; switch userport back to input - we want to have both sides
     ; in input mode when idle, only switch to output if necessary
     lda #$00
@@ -539,6 +554,34 @@ wic64_finalize
 
 +   sei
     rts
+
+; ********************************************************
+
+wic64_prepare_transfer_of_remaining_bytes: ; EXPORT
+    lda wic64_transfer_size
+    sta wic64_bytes_to_transfer
+    lda wic64_transfer_size+1
+    sta wic64_bytes_to_transfer+1
+    rts
+
+wic64_update_transfer_size_after_transfer: !zone { ;EXPORT
+    lda wic64_transfer_size
+    sec
+    sbc wic64_bytes_to_transfer
+    sta wic64_transfer_size
+
+    lda wic64_transfer_size+1
+    sbc wic64_bytes_to_transfer+1
+    sta wic64_transfer_size+1
+    bcs .done
+
+    lda #$00
+    sta wic64_transfer_size
+    sta wic64_transfer_size+1
+.done
+    clc
+    rts
+}
 
 ; ********************************************************
 
@@ -600,8 +643,6 @@ wic64_handle_timeout:
     pla
     jmp (.timeout_handler)
 
-.timeout_handler !word $0000
-
 ; ********************************************************
 ; wic64_execute
 ; ********************************************************
@@ -634,7 +675,7 @@ wic64_handle_timeout:
     jsr wic64_execute
 }
 
-wic64_execute
+wic64_execute: ; EXPORT
     +wic64_initialize
     +wic64_branch_on_timeout +
     +wic64_send_header
@@ -663,7 +704,7 @@ wic64_execute
     jsr wic64_load_and_run
 }
 
-wic64_load_and_run:
+wic64_load_and_run: ; EXPORT
     sei
 
     lda #$00
@@ -676,7 +717,7 @@ wic64_load_and_run:
     +wic64_receive_header
     jmp .check_response_size
 
-.check_response_size
+.check_response_size:
     ; if the response size is 2 bytes or less,
     ; we can assume that an error has occured,
     ; e.g. a 404, server was busy, or the
@@ -688,7 +729,7 @@ wic64_load_and_run:
     cmp wic64_transfer_size
     bcc .ready_to_receive
 
-.server_error
+.server_error:
     ; we still adhere to protocol and finish the transfer
     ; by receiving the response to the tape buffer
     +wic64_set_zeropage_pointer_to .tapebuffer
@@ -698,7 +739,7 @@ wic64_load_and_run:
    sec ; indicate error to caller
 +  rts
 
-.ready_to_receive
+.ready_to_receive:
     ; receive and discard load address...
     +wic64_wait_for_handshake
     lda $dd01
@@ -741,7 +782,7 @@ wic64_load_and_run:
 .kernal_reset_vectors = $ff8a
 .basic_perform_run = $a7ae
 
-.receive_and_run
+.receive_and_run:
 !pseudopc .tapebuffer {
     ldx .response_size+1
     beq ++
@@ -812,33 +853,24 @@ wic64_load_and_run:
     jsr wic64_return_to_portal
 }
 
-wic64_return_to_portal: !zone wic64_return_to_portal {
+wic64_return_to_portal: ; EXPORT
     ; if the portal loads sucessfully, this routine
     ; never returns. This if it returns, something went
     ; wrong (e.g. no network, server busy, etc)
 
     ; retry at most 16 times
     lda #$10
-    sta .retries
+    sta .portal_retries
 
--   +wic64_load_and_run .portal
+-   +wic64_load_and_run .portal_request
 
     ; failed to load portal, keep trying...
-    dec .retries
+    dec .portal_retries
     bne -
 
     ; max number of retries reached, return and let
     ; the caller handle this further
     rts
-
-    .retries: !byte $00
-
-    .portal:
-    !text "W", .portal_url_end - .portal_url + 4, $00, $01
-    .portal_url:
-    !text "http://x.wic64.net/menue.prg"
-    .portal_url_end:
-}
 
 } ; end of !if wic64_include_return_to_portal != 0
 
@@ -848,8 +880,26 @@ wic64_return_to_portal: !zone wic64_return_to_portal {
 
 ; ********************************************************
 
+!if (wic64_use_unused_labels != 0) {
+    jsr wic64_execute
+    jsr wic64_return_to_portal
+}
+
+; ********************************************************
+
 !ifdef wic64_debug {
     !if (wic64_debug != 0) {
+
+        !if (>.wic64_send_critical_begin != >.wic64_send_critical_end) {
+            !warn "wic64_send: critical section crosses page boundary"
+            !warn "wic64_send: critical: ", .wic64_send_critical_begin, " - ", .wic64_send_critical_end
+        }
+
+        !if (>.wic64_receive_critical_begin != >.wic64_receive_critical_end) {
+            !warn "wic64_receive: critical section crosses page boundary"
+            !warn "wic64_receive: critical: ", .wic64_receive_critical_begin, " - ", .wic64_receive_critical_end
+        }
+
         !warn "wic64_zeropage_pointer = ", wic64_zeropage_pointer
         !warn "wic64_include_load_and_run = ", wic64_include_load_and_run
         !warn "wic64_include_return_to_portal = ", wic64_include_return_to_portal
