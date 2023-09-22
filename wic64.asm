@@ -1,49 +1,78 @@
+;---------------------------------------------------------
+; Wic64 library (C)2023 WiC64-Team
+;---------------------------------------------------------
+; Written in Acme cross assembler
+;
+; Please read the documentation if you want to know how to
+; use this library. This file contains mostly technical
+; comments.
+
 !zone wic64 {
 
-;*********************************************************
+;---------------------------------------------------------
 ; Assembly time options
+;---------------------------------------------------------
 ;
 ; Define the symbols in the following section before
 ; including this file to change the defaults.
-;*********************************************************
+
+
+;---------------------------------------------------------
+; Specify the first of two consecutive zeropage locations
+; that can be safely used by this library
 
 !ifndef wic64_zeropage_pointer {
-    wic64_zeropage_pointer = $22 ; EXPORT
+    wic64_zeropage_pointer = $a7 ; EXPORT
 }
+
+;---------------------------------------------------------
+; Set to a non-zero value to enable size optimisations
+; Optimizing for size will decrease performance
 
 !ifndef wic64_optimize_for_size {
     wic64_optimize_for_size = 0
 }
+
+;---------------------------------------------------------
+; Set to a non-zero value to include code to return to the
+; WiC64 portal.
+;
+; Using this option implies wic64_include_load_run = 1
 
 !ifndef wic64_include_return_to_portal {
     wic64_include_return_to_portal = 0
 }
 
+;---------------------------------------------------------
+; Set to a non-zero value to include code to load and run
+; programs.
+;
+; Will be set by default if wic64_include_return_to_portal
+; is used
+
 !ifndef wic64_include_load_and_run {
     !if (wic64_include_return_to_portal != 0) {
         wic64_include_load_and_run = 1
+    } else {
+        wic64_include_load_and_run = 0
     }
 }
 
-!ifndef wic64_include_load_and_run {
-    wic64_include_load_and_run = 0
-}
-
-!ifndef wic64_optimize_for_size {
-    wic64_optimize_for_size = 0
-}
+;---------------------------------------------------------
+; Do not change - this option is only used during build
 
 !ifndef wic64_use_unused_labels {
     wic64_use_unused_labels = 0
 }
 
-;*********************************************************
+;---------------------------------------------------------
 ; Runtime options
+;---------------------------------------------------------
 ;
 ; Set the following memory locations to control runtime
 ; behaviour.
-;*********************************************************
 
+;---------------------------------------------------------
 ; wic64_timeout
 ;
 ; This value defines the time to wait for a handshake.
@@ -68,9 +97,8 @@
     sta wic64_timeout
 }
 
-;*********************************************************
-
-; macros wic64_dont_disable_irqs and wic64_do_disable_irqs
+;---------------------------------------------------------
+; wic64_dont_disable_irqs
 ;
 ; Set to a nonzero value to prevent disabling of
 ; interrupts during transfers.
@@ -84,21 +112,40 @@
 ; The default is to disable irqs during transfer.
 ;
 
-;*********************************************************
+!macro wic64_do_disable_irqs {
+    lda #$00
+    sta wic64_dont_disable_irqs
+}
 
 !macro wic64_dont_disable_irqs {
     lda #$01
     sta wic64_dont_disable_irqs
 }
 
-;*********************************************************
+;---------------------------------------------------------
+; Setup an address to jump to in case a timeout
+; occurs in any of the transfer routines that are called
+; during command execution. This address needs to be set up
+; before every new request, as it is reset in wic64_finalize.
+;
+; After a timeout occurs, the current stack level is reset
+; to the level from which the transfer routine in which the
+; timeout occurred was called, e.g. it will resemble a branch
+; instruction.
+;
+; This is mainly useful if you're using the low level api
+; calls, since it avoids having to check for a timeout after
+; every single call. See the documentation for details.
 
-!macro wic64_do_disable_irqs {
-    lda #$00
-    sta wic64_dont_disable_irqs
+!macro wic64_branch_on_timeout .addr {
+    lda #<.addr
+    sta wic64_user_timeout_handler
+    lda #>.addr
+    sta wic64_user_timeout_handler+1
 }
 
-;*********************************************************
+;---------------------------------------------------------
+; set zeropage pointer from specified address
 
 !macro wic64_set_zeropage_pointer_from .addr {
     lda .addr
@@ -107,6 +154,9 @@
     sta wic64_zeropage_pointer+1
 }
 
+;---------------------------------------------------------
+; set zeropage pointer to the specified address
+
 !macro wic64_set_zeropage_pointer_to .addr {
     lda #<.addr
     sta wic64_zeropage_pointer
@@ -114,22 +164,184 @@
     sta wic64_zeropage_pointer+1
 }
 
-; ********************************************************
+;---------------------------------------------------------
+; Specify the start address of memory area containing the
+; request to send to the WiC64
+
+!macro wic64_set_request .request {
+    lda #<.request
+    sta wic64_request
+    lda #>.request
+    sta wic64_request+1
+}
+
+;---------------------------------------------------------
+; Specify the start address of memory area where the
+; response from the WiC64 should be stored to
+
+!macro wic64_set_response .response {
+    lda #<.response
+    sta wic64_response
+    lda #>.response
+    sta wic64_response+1
+}
+
+;---------------------------------------------------------
+; Make sure the next call to wic64_send or wic64_receive
+; will transfer all bytes not sent or received so far
+
+!macro wic64_prepare_transfer_of_remaining_bytes {
+    jsr wic64_prepare_transfer_of_remaining_bytes
+}
+
+;---------------------------------------------------------
+; Substract the number of bytes transferred in the previous
+; call to wic64_send or wic64_receive from the number of
+; bytes remaining to be transferred in the currend request
+; or response
+
+!macro wic64_update_transfer_size_after_transfer {
+    jsr wic64_update_transfer_size_after_transfer
+}
+
+;---------------------------------------------------------
+
+!macro wic64_initialize {
+    jsr wic64_initialize
+}
+
+;---------------------------------------------------------
+
+!macro wic64_send_header {
+    ; request must be set beforehand
+    jsr wic64_send_header
+}
+
+!macro wic64_send_header .request {
+    +wic64_set_request .request
+    jsr wic64_send_header
+}
+
+;---------------------------------------------------------
+
+!macro wic64_send {
+    ; request must be set beforehand
+    +wic64_prepare_transfer_of_remaining_bytes
+    jsr wic64_send
+}
+
+;---------------------------------------------------------
+
+!macro wic64_send .request {
+    +wic64_set_request .request
+    +wic64_prepare_transfer_of_remaining_bytes
+    jsr wic64_send
+}
+
+!macro wic64_send .request, .size {
+    +wic64_set_request .request
+    +wic64_set_zeropage_pointer_from wic64_request
+
+    lda #<.size
+    sta wic64_bytes_to_transfer
+    lda #>.size+1
+    sta wic64_bytes_to_transfer+1
+
+    jsr wic64_send
+}
+
+;---------------------------------------------------------
+
+!macro wic64_receive_header {
+    jsr wic64_receive_header
+}
+
+;---------------------------------------------------------
+
+!macro wic64_receive {
+    ; response must be set beforehand
+    +wic64_prepare_transfer_of_remaining_bytes
+    jsr wic64_receive
+}
+
+!macro wic64_receive .response {
+    +wic64_set_response .response
+    +wic64_prepare_transfer_of_remaining_bytes
+    jsr wic64_receive
+}
+
+!macro wic64_receive .response, .size {
+    +wic64_set_response .response
+
+    lda #<.size
+    sta wic64_bytes_to_transfer
+    lda #>.size+1
+    sta wic64_bytes_to_transfer+1
+
+    jsr wic64_receive
+}
+
+;---------------------------------------------------------
+
+!macro wic64_finalize {
+    jsr wic64_finalize
+}
+
+;---------------------------------------------------------
+
+!macro wic64_execute .request, .response {
+    +wic64_execute .request, .response, $02
+}
+
+!macro wic64_execute .request, .response, .timeout {
+    +wic64_set_request .request
+    +wic64_set_response .response
+
+    lda #.timeout
+    sta wic64_timeout
+
+    jsr wic64_execute
+}
+
+!macro wic64_load_and_run .request {
+    +wic64_load_and_run .request, $02
+}
+
+!macro wic64_load_and_run .request, .timeout {
+    +wic64_set_request .request
+
+    lda #.timeout
+    sta wic64_timeout
+
+    jsr wic64_load_and_run
+}
+
+!if (wic64_include_return_to_portal != 0) {
+
+!macro wic64_return_to_portal {
+    jsr wic64_return_to_portal
+}
+
+}
+
+;---------------------------------------------------------
 ; Define macro wic64_wait_for_handshake
-; ********************************************************
+;---------------------------------------------------------
 ;
 ; If wic64_optimize_for_size is set to a nonzero value,
 ; a subroutine will be defined using the code defined
-; in wic64_wait_for_handshake_code and the macro will
-; be defined to simply call this subroutine.
+; in the macro wic64_wait_for_handshake_code and the
+; macro will be defined to simply call this subroutine.
 ;
 ; Otherwise the macro will contain the code directly.
 ;
 ; Note that optimizing for size will significantly decrease
 ; transfer speed by about 30% due to the jsr/rts overhead
 ; added for every byte transferred.
+;---------------------------------------------------------
 
 !macro wic64_wait_for_handshake_code {
+
     ; wait until a handshake has been received from the ESP,
     ; e.g. the FLAG2 line on the userport has been asserted,
     ; with sets bit 4 of $dd0d. Set the carry flag to indicate
@@ -138,6 +350,7 @@
 
     ; do a first cheap test for FLAG2 before wasting cycles
     ; setting up the counters.
+
     lda #$10
     bit $dd0d
     !if (wic64_optimize_for_size == 0) {
@@ -158,7 +371,7 @@
     lda #$48
     sta wic64_counters+1
 
-+   ; keep testing for FLAG2 until all counters are zero
++   ; keep testing for FLAG2 until all counters are down to zero
     lda #$10
 .wait
     bit $dd0d
@@ -184,7 +397,9 @@
 .success
 }
 
-; ********************************************************
+;---------------------------------------------------------
+; define wic64_wait_for_handshake as macro or subroutine,
+; depending on wic64_optimize_for_size
 
 !if (wic64_optimize_for_size == 0) {
     !macro wic64_wait_for_handshake {
@@ -201,15 +416,15 @@
     }
 }
 
-; ********************************************************
+;--------------------------------------------------------
 ; Data Section
-; ********************************************************
+;--------------------------------------------------------
 
 wic64_data_section_start: ; EXPORT
 
-; ********************************************************
+;---------------------------------------------------------
 ; Globals
-; ********************************************************
+;---------------------------------------------------------
 
 wic64_timeout:           !byte $01    ; EXPORT
 wic64_dont_disable_irqs: !byte $00    ; EXPORT
@@ -220,21 +435,20 @@ wic64_response_size:     !word $0000  ; EXPORT
 wic64_bytes_to_transfer: !word $0000  ; EXPORT
 
 ; these label should be local, but unfortunately acmes
-; limited scoping requires these labels to be global:
+; limited scoping requires these labels to be defined
+; as global labels:
 
 wic64_counters: !byte $00, $00, $00
 wic64_user_timeout_handler: !word $0000
 
-; ********************************************************
+;---------------------------------------------------------
 ; Locals
-; ********************************************************
+;---------------------------------------------------------
 
 .user_irq_flag: !byte $00
 .timeout_handler: !word $0000
 
 !if (wic64_include_return_to_portal != 0) {
-
-.portal_retries: !byte $00
 
 .portal_request:
 !text "W", .portal_url_end - .portal_url + 4, $00, $01
@@ -242,36 +456,55 @@ wic64_user_timeout_handler: !word $0000
 !text "http://x.wic64.net/menue.prg"
 .portal_url_end:
 
+.portal_retries: !byte $00
 }
 
-; ********************************************************
+;--------------------------------------------------------;
 
 wic64_data_section_end: ; EXPORT
 
-!macro wic64_branch_on_timeout .addr {
-    lda #<.addr
-    sta wic64_user_timeout_handler
-    lda #>.addr
-    sta wic64_user_timeout_handler+1
+;---------------------------------------------------------
+; Implementation
+;
+; The code in this section is organized in a way that the
+; critical setions in wic64_send and wic64_receive do not
+; cross page boundaries if this library is included on or
+; close to a page boundary.
+;
+; If wic64_debug is set to a non-zero value, a warning
+; will be issued during assembly if critical sections
+; happen to cross page boundaries.
+;---------------------------------------------------------
+
+wic64_prepare_transfer_of_remaining_bytes: ; EXPORT
+    lda wic64_transfer_size
+    sta wic64_bytes_to_transfer
+    lda wic64_transfer_size+1
+    sta wic64_bytes_to_transfer+1
+    rts
+
+;---------------------------------------------------------
+
+wic64_update_transfer_size_after_transfer: !zone { ;EXPORT
+    lda wic64_transfer_size
+    sec
+    sbc wic64_bytes_to_transfer
+    sta wic64_transfer_size
+
+    lda wic64_transfer_size+1
+    sbc wic64_bytes_to_transfer+1
+    sta wic64_transfer_size+1
+    bcs .done
+
+    lda #$00
+    sta wic64_transfer_size
+    sta wic64_transfer_size+1
+.done
+    clc
+    rts
 }
 
-; ********************************************************
-
-!macro wic64_update_transfer_size_after_transfer {
-    jsr wic64_update_transfer_size_after_transfer
-}
-
-; ********************************************************
-
-!macro wic64_prepare_transfer_of_remaining_bytes {
-    jsr wic64_prepare_transfer_of_remaining_bytes
-}
-
-; ********************************************************
-
-!macro wic64_initialize {
-    jsr wic64_initialize
-}
+;---------------------------------------------------------
 
 wic64_initialize: ; EXPORT
     ; always start with a cleared FLAG2 bit in $dd0d
@@ -297,28 +530,19 @@ wic64_initialize: ; EXPORT
     bne +
     sei
 
-+   ; set pa2 to output
++   ; ensure pa2 is set to output
     lda $dd02
     ora #$04
     sta $dd02
 
-    clc ; carry will be set if transfer times out
+    ; clear carry -- will be set if transfer times out
+    clc
     rts
 
-; ********************************************************
-
-!macro wic64_send_header {
-    ; request must be set beforehand
-    jsr wic64_send_header
-}
-
-!macro wic64_send_header .request {
-    +wic64_set_request .request
-    jsr wic64_send_header
-}
+;---------------------------------------------------------
 
 wic64_send_header: ; EXPORT
-    ; ask esp to switch to input
+    ; ask esp to switch to input by setting pa2 high
     lda $dd00
     ora #$04
     sta $dd00
@@ -360,31 +584,7 @@ wic64_send_header: ; EXPORT
 
     rts
 
-; ********************************************************
-
-!macro wic64_send {
-    ; request must be set beforehand
-    +wic64_prepare_transfer_of_remaining_bytes
-    jsr wic64_send
-}
-
-!macro wic64_send .request {
-    +wic64_set_request .request
-    +wic64_prepare_transfer_of_remaining_bytes
-    jsr wic64_send
-}
-
-!macro wic64_send .request, .size {
-    +wic64_set_request .request
-    +wic64_set_zeropage_pointer_from wic64_request
-
-    lda #<.size
-    sta wic64_bytes_to_transfer
-    lda #>.size+1
-    sta wic64_bytes_to_transfer+1
-
-    jsr wic64_send
-}
+;---------------------------------------------------------
 
 wic64_send: ; EXPORT
     ldx wic64_bytes_to_transfer+1
@@ -425,11 +625,7 @@ wic64_send: ; EXPORT
     +wic64_update_transfer_size_after_transfer
     rts
 
-; ********************************************************
-
-!macro wic64_receive_header {
-    jsr wic64_receive_header
-}
+;---------------------------------------------------------
 
 wic64_receive_header: ; EXPORT
     ; switch userport to input
@@ -462,30 +658,7 @@ wic64_receive_header: ; EXPORT
 
     rts
 
-; ********************************************************
-
-!macro wic64_receive {
-    ; response must be set beforehand
-    +wic64_prepare_transfer_of_remaining_bytes
-    jsr wic64_receive
-}
-
-!macro wic64_receive .response {
-    +wic64_set_response .response
-    +wic64_prepare_transfer_of_remaining_bytes
-    jsr wic64_receive
-}
-
-!macro wic64_receive .response, .size {
-    +wic64_set_response .response
-
-    lda #<.size
-    sta wic64_bytes_to_transfer
-    lda #>.size+1
-    sta wic64_bytes_to_transfer+1
-
-    jsr wic64_receive
-}
+;---------------------------------------------------------
 
 wic64_receive: ; EXPORT
     +wic64_set_zeropage_pointer_from wic64_response
@@ -527,11 +700,7 @@ wic64_receive: ; EXPORT
     +wic64_update_transfer_size_after_transfer
     rts
 
-; ********************************************************
-
-!macro wic64_finalize {
-    jsr wic64_finalize
-}
+;---------------------------------------------------------
 
 wic64_finalize: ; EXPORT
     ; switch userport back to input - we want to have both sides
@@ -555,35 +724,7 @@ wic64_finalize: ; EXPORT
 +   sei
     rts
 
-; ********************************************************
-
-wic64_prepare_transfer_of_remaining_bytes: ; EXPORT
-    lda wic64_transfer_size
-    sta wic64_bytes_to_transfer
-    lda wic64_transfer_size+1
-    sta wic64_bytes_to_transfer+1
-    rts
-
-wic64_update_transfer_size_after_transfer: !zone { ;EXPORT
-    lda wic64_transfer_size
-    sec
-    sbc wic64_bytes_to_transfer
-    sta wic64_transfer_size
-
-    lda wic64_transfer_size+1
-    sbc wic64_bytes_to_transfer+1
-    sta wic64_transfer_size+1
-    bcs .done
-
-    lda #$00
-    sta wic64_transfer_size
-    sta wic64_transfer_size+1
-.done
-    clc
-    rts
-}
-
-; ********************************************************
+;---------------------------------------------------------
 
 wic64_handle_timeout:
     ; call stack when not optimized for size (wait_for_handshake macro)
@@ -643,37 +784,9 @@ wic64_handle_timeout:
     pla
     jmp (.timeout_handler)
 
-; ********************************************************
+;---------------------------------------------------------
 ; wic64_execute
-; ********************************************************
-
-!macro wic64_set_request .request {
-    lda #<.request
-    sta wic64_request
-    lda #>.request
-    sta wic64_request+1
-}
-
-!macro wic64_set_response .response {
-    lda #<.response
-    sta wic64_response
-    lda #>.response
-    sta wic64_response+1
-}
-
-!macro wic64_execute .request, .response {
-    +wic64_execute .request, .response, $02
-}
-
-!macro wic64_execute .request, .response, .timeout {
-    +wic64_set_request .request
-    +wic64_set_response .response
-
-    lda #.timeout
-    sta wic64_timeout
-
-    jsr wic64_execute
-}
+;---------------------------------------------------------
 
 wic64_execute: ; EXPORT
     +wic64_initialize
@@ -685,24 +798,11 @@ wic64_execute: ; EXPORT
     +wic64_finalize
 +   rts
 
-; ********************************************************
+;---------------------------------------------------------
 ; wic64_load_and_run
-; ********************************************************
+;---------------------------------------------------------
 
 !if (wic64_include_load_and_run != 0) {
-
-!macro wic64_load_and_run .request {
-    +wic64_load_and_run .request, $02
-}
-
-!macro wic64_load_and_run .request, .timeout {
-    +wic64_set_request .request
-
-    lda #.timeout
-    sta wic64_timeout
-
-    jsr wic64_load_and_run
-}
 
 wic64_load_and_run: ; EXPORT
     sei
@@ -773,7 +873,7 @@ wic64_load_and_run: ; EXPORT
 
     jmp .tapebuffer
 
-; ********************************************************
+;---------------------------------------------------------
 
 .tapebuffer = $0334
 .basic_end_pointer = $2d
@@ -843,15 +943,11 @@ wic64_load_and_run: ; EXPORT
 .receive_and_run_end:
 .receive_and_run_size = .receive_and_run_end - .receive_and_run
 
-; ********************************************************
+;---------------------------------------------------------
 ; wic64_return_to_portal
-; ********************************************************
+;---------------------------------------------------------
 
 !if (wic64_include_return_to_portal != 0) {
-
-!macro wic64_return_to_portal {
-    jsr wic64_return_to_portal
-}
 
 wic64_return_to_portal: ; EXPORT
     ; if the portal loads sucessfully, this routine
@@ -874,22 +970,21 @@ wic64_return_to_portal: ; EXPORT
 
 } ; end of !if wic64_include_return_to_portal != 0
 
-; ********************************************************
+;---------------------------------------------------------
 
 } ; end of !if wic64_include_load_and_run != 0
 
-; ********************************************************
+;---------------------------------------------------------
 
 !if (wic64_use_unused_labels != 0) {
     jsr wic64_execute
     jsr wic64_return_to_portal
 }
 
-; ********************************************************
+;---------------------------------------------------------
 
 !ifdef wic64_debug {
     !if (wic64_debug != 0) {
-
         !if (>.wic64_send_critical_begin != >.wic64_send_critical_end) {
             !warn "wic64_send: critical section crosses page boundary"
             !warn "wic64_send: critical: ", .wic64_send_critical_begin, " - ", .wic64_send_critical_end
@@ -904,6 +999,7 @@ wic64_return_to_portal: ; EXPORT
         !warn "wic64_include_load_and_run = ", wic64_include_load_and_run
         !warn "wic64_include_return_to_portal = ", wic64_include_return_to_portal
         !warn "wic64_optimize_for_size = ", wic64_optimize_for_size
+
         !if (wic64_include_load_and_run != 0) {
             !warn "Tapebuffer code is ", .receive_and_run_size, " bytes"
         }
