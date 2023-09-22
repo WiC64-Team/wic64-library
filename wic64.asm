@@ -22,7 +22,7 @@
 ; that can be safely used by this library
 
 !ifndef wic64_zeropage_pointer {
-    wic64_zeropage_pointer = $a7 ; EXPORT
+    wic64_zeropage_pointer = $a6 ; EXPORT
 }
 
 ;---------------------------------------------------------
