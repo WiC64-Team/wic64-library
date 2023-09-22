@@ -10,6 +10,7 @@ wic64.bin: $(SOURCES)
 
 wic64-complete.bin: $(SOURCES)
 	$(ASM) $(ASMFLAGS) \
+		-Dwic64_zeropage_pointer=254 \
 		-Dwic64_include_return_to_portal=1 \
 		-Dwic64_use_unused_labels=1 \
 		-l wic64.sym \
