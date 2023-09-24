@@ -1,6 +1,6 @@
 include ../../Makefile.inc
 INCLUDES = -I../..
-SOURCES = *.asm ../../wic64.asm
+SOURCES = *.asm ../../wic64.asm ../../wic64.h
 
 .PHONY: all clean
 
