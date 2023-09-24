@@ -5,6 +5,7 @@
 jmp main
 
 wic64_include_load_and_run = 1
+!src "wic64.h"
 !src "wic64.asm"
 
 main:

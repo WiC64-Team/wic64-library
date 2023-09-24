@@ -7,6 +7,7 @@ blank_screen = 1
 jmp main
 
 ; include wic64 lib
+!src "wic64.h"
 !src "wic64.asm"
 
 ; include sidfile, skipping header data

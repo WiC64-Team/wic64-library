@@ -6,6 +6,7 @@ strout = $ab1e
 * = $0810
 jmp main
 
+!src "wic64.h"
 !src "wic64.asm"
 
 !macro print .string {

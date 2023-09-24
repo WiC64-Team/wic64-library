@@ -8,6 +8,7 @@ strout = $ab1e
 jmp main
 
 wic64_include_return_to_portal = 1
+!src "wic64.h"
 !src "wic64.asm"
 
 main:
