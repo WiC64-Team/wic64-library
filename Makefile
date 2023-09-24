@@ -10,11 +10,11 @@ wic64.bin: $(SOURCES)
 
 wic64-complete.bin: $(SOURCES)
 	$(ASM) $(ASMFLAGS) \
-		-Dwic64_zeropage_pointer=254 \
+		-Dwic64_zeropage_pointer=166 \
 		-Dwic64_include_return_to_portal=1 \
 		-Dwic64_use_unused_labels=1 \
 		-l wic64.sym \
-		--setpc 0x0000 \
+		--setpc 0x1000 \
 		-o $@ \
 		wic64.asm
 

@@ -61,6 +61,7 @@ class AssemblyRange
     def resolve(symbols)
         @start = symbols.by_name(@start).value.to_s(16).rjust(4, '0')
         @stop = (symbols.by_name(@stop).value - 3).to_s(16).rjust(4, '0')
+        PP.pp(self, STDERR)
     end
 
     def to_s
@@ -136,7 +137,7 @@ class Export
             end
         end
 
-        da65_options = '--cpu 6502 -S0000 --label-break 4'
+        da65_options = '--cpu 6502 -S\$1000 --label-break 4 --comments 1'
 
         unless @ranges.empty?
             da65_info_file = "/tmp/#{@acme_source_path}.info"
@@ -193,7 +194,7 @@ class Export
 
         if @standalone
             puts "\tprocessor 6502"
-            puts "\torg $0000"
+            puts "\torg $1000"
         end
 
         @definitions.each do |definition|
