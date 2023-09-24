@@ -580,8 +580,8 @@ wic64_send_header: ; EXPORT
     lda wic64_zeropage_pointer+1
     adc #$00
     sta wic64_zeropage_pointer+1
-    clc
 
+    clc
     rts
 
 ;---------------------------------------------------------
@@ -623,6 +623,7 @@ wic64_send: ; EXPORT
 
 .send_done
     +wic64_update_transfer_size_after_transfer
+    clc
     rts
 
 ;---------------------------------------------------------
@@ -656,6 +657,7 @@ wic64_receive_header: ; EXPORT
     sta wic64_transfer_size
     sta wic64_bytes_to_transfer
 
+    clc
     rts
 
 ;---------------------------------------------------------
@@ -698,6 +700,7 @@ wic64_receive: ; EXPORT
 
 .receive_done:
     +wic64_update_transfer_size_after_transfer
+    clc
     rts
 
 ;---------------------------------------------------------
@@ -790,11 +793,18 @@ wic64_handle_timeout:
 
 wic64_execute: ; EXPORT
     +wic64_initialize
-    +wic64_branch_on_timeout +
     +wic64_send_header
+    bcs +
+
     +wic64_send
+    bcs +
+
     +wic64_receive_header
+    bcs +
+
     +wic64_receive
+    bcs +
+
     +wic64_finalize
 +   rts
 
@@ -811,11 +821,14 @@ wic64_load_and_run: ; EXPORT
     sta wic64_dont_disable_irqs
 
     +wic64_initialize
-    +wic64_branch_on_timeout +
     +wic64_send_header
+    bcs +
+
     +wic64_send
+    bcs +
+
     +wic64_receive_header
-    jmp .check_response_size
+    bcs +
 
 .check_response_size:
     ; if the response size is 2 bytes or less,
@@ -836,8 +849,8 @@ wic64_load_and_run: ; EXPORT
 
     jsr wic64_receive
 
-   sec ; indicate error to caller
-+  rts
+    sec ; indicate error to caller in any case
++   rts
 
 .ready_to_receive:
     ; receive and discard load address...
