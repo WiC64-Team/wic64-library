@@ -1,7 +1,7 @@
 include Makefile.inc
 SOURCES = *.asm *.h
 
-.PHONY: all export-dasm export-dasm-verify clean
+.PHONY: all dasm-export dasm-export-very test prompt clean
 
 all: wic64.bin
 
@@ -53,6 +53,13 @@ dasm-export: wic64.dasm
 dasm-export-verify: wic64-complete.bin wic64-dasm.bin
 	diff wic64-complete.bin wic64-dasm.bin
 	@rm -f wic64-complete.bin wic64-dasm.bin wic64-standalone.dasm
+
+prompt:
+	@echo "Press any key to run next example"
+	@read -n1
+
+test:
+	@for d in ./examples/*; do make prompt; make -C "$$d" clean test; done
 
 clean:
 	rm -f *.{prg,sym,bin,dasm}
