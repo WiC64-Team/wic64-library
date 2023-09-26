@@ -59,11 +59,13 @@ wic64_user_timeout_handler: !word $0000
 
 .user_irq_flag: !byte $00
 .timeout_handler: !word $0000
+.legacy_request: !byte $00
+.dont_update_transfer_size_next_time: !byte $01
 
 !if (wic64_include_return_to_portal != 0) {
 
 .portal_request:
-!text "W", .portal_url_end - .portal_url + 4, $00, $01
+!text "R", $01, .portal_url_end - .portal_url, $00
 .portal_url:
 !text "http://x.wic64.net/menue.prg"
 .portal_url_end:
@@ -97,7 +99,10 @@ wic64_prepare_transfer_of_remaining_bytes: ; EXPORT
 
 ;---------------------------------------------------------
 
-wic64_update_transfer_size_after_transfer: !zone { ;EXPORT
+wic64_update_transfer_size_after_transfer: ;EXPORT
+    lda .dont_update_transfer_size_next_time
+    beq +
+
     lda wic64_transfer_size
     sec
     sbc wic64_bytes_to_transfer
@@ -106,15 +111,16 @@ wic64_update_transfer_size_after_transfer: !zone { ;EXPORT
     lda wic64_transfer_size+1
     sbc wic64_bytes_to_transfer+1
     sta wic64_transfer_size+1
-    bcs .done
+    bcs +
 
     lda #$00
     sta wic64_transfer_size
     sta wic64_transfer_size+1
-.done
+
++   lda #$01
+    sta .dont_update_transfer_size_next_time
     clc
     rts
-}
 
 ;---------------------------------------------------------
 
@@ -163,12 +169,34 @@ wic64_send_header: ; EXPORT
     lda #$ff
     sta $dd03
 
-    ; get request size, which is the size of the complete
-    ; request, including the request header
-
     +wic64_set_zeropage_pointer_from wic64_request
 
-    ldy #$01
+    ; initially assume this is a legacy request
+    lda #$00
+    sta .legacy_request
+
+    ; read the first magic byte of the request header:
+    ;
+    ; legacy header:   "W", <size-low>, <size-high>, <cmd>
+    ; standard header: "R", <cmd>, <size-low>, <size-high>
+
+    ldy #$00
+    lda (wic64_zeropage_pointer),y
+
+    ; request size always starts at second byte at least
+    iny
+
+    ; test for legacy request
+    cmp #"W"
+    beq .read_size_from_header
+
+    ; not a legacy request => size starts at third byte
+    iny
+
+    ; store result of test for later
+    inc .legacy_request
+
+.read_size_from_header:
     lda (wic64_zeropage_pointer),y
     sta wic64_transfer_size
 
@@ -176,15 +204,23 @@ wic64_send_header: ; EXPORT
     lda (wic64_zeropage_pointer),y
     sta wic64_transfer_size+1
 
-    ; transfer header only
+.send_header:
+    ; transfer request header
     lda #$04
     sta wic64_bytes_to_transfer
     lda #$00
     sta wic64_bytes_to_transfer+1
 
-    jsr wic64_send
+    lda .legacy_request
+    beq +
 
-    ; advance request pointer beyond header
+    lda #$00
+    sta .dont_update_transfer_size_next_time
+
++   jsr wic64_send
+
+.advance_zeropage_pointer:
+    ; advance pointer beyond header
     lda wic64_zeropage_pointer
     clc
     adc #$04
@@ -256,18 +292,36 @@ wic64_receive_header: ; EXPORT
     ; esp now expects a handshake (accessing $dd01 asserts PC2 line)
     lda $dd01
 
-    ; response size is sent in big-endian for unknown reasons
-    +wic64_wait_for_handshake
-    lda $dd01
-    sta wic64_response_size+1
-    sta wic64_transfer_size+1
-    sta wic64_bytes_to_transfer+1
+    ; receive the response size, assume standard request (little-endian)
 
     +wic64_wait_for_handshake
     lda $dd01
     sta wic64_response_size
+
+    +wic64_wait_for_handshake
+    lda $dd01
+    sta wic64_response_size+1
+
+    lda .legacy_request
+    bne +
+
+    ; for legacy requests, the response size is sent in big-endian
+    ; for unknown reasons, so swap the bytes received
+
+    lda wic64_response_size
+    tax
+    lda wic64_response_size+1
+    sta wic64_response_size
+    stx wic64_response_size+1
+
++   ; copy response_size to transfer_size and bytes_to_transfer
+    lda wic64_response_size
     sta wic64_transfer_size
     sta wic64_bytes_to_transfer
+
+    lda wic64_response_size+1
+    sta wic64_transfer_size+1
+    sta wic64_bytes_to_transfer+1
 
     clc
     rts
@@ -465,21 +519,14 @@ wic64_load_and_run: ; EXPORT
 +   rts
 
 .ready_to_receive:
-    ; receive and discard load address...
+    ; receive and discard load address
     +wic64_wait_for_handshake
     lda $dd01
 
     +wic64_wait_for_handshake
     lda $dd01
 
-    ; now it would be correct to subtract two bytes
-    ; from the response size reported by the firmware,
-    ; since we have already read the two load address
-    ; bytes. unfortunately, the original firmware contains
-    ; a hack that already substracts two from the reported
-    ; response size if a url ends in ".prg"...
-
-    ; always load to $0801
+    ; default to loading to $0801 instead
     +wic64_set_zeropage_pointer_to $0801
 
     ; copy receive-and-run-routine to tape buffer
@@ -490,8 +537,30 @@ wic64_load_and_run: ; EXPORT
     cpx #.receive_and_run_size
     bne -
 
-    ; transfer response size to tapebuffer location
+    ; recall if this was a legacy request
+    ; if not, the ESP has substracted 2 bytes from the
+    ; response size already if the url ended with ".prg"
+    ; this was a hack that was supposed to make the client
+    ; side programming "easier"
+
+    lda .legacy_request
+    beq +
+
+    ; standard request -- correctly substract the two
+    ; load address bytes we already received from the
+    ; response size, since the ESP does not lie about
+    ; it anymore
+
     lda wic64_transfer_size
+    sec
+    sbc #$02
+    sta wic64_transfer_size
+    lda wic64_transfer_size+1
+    sbc #$00
+    sta wic64_transfer_size+1
+
+    ; transfer response size to tapebuffer location
++   lda wic64_transfer_size
     sta .response_size
     lda wic64_transfer_size+1
     sta .response_size+1

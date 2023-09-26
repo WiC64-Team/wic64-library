@@ -30,7 +30,7 @@ timeout:
     +print newline
     rts
 
-get_ip: !byte "W", $04, $00, $06
+get_ip: !byte "R", $06, $00, $00
 ip: !fill 32, $00
 
 newline: !text $0d, $00

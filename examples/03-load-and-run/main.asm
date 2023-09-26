@@ -13,7 +13,7 @@ main:
     rts ; should never be reached
 
 gianna:
-!text "W", gianna_url_end - gianna_url + 4, $00, $01
+!text "R", $01, gianna_url_end - gianna_url, $00
 gianna_url:
 !text "http://x.wic64.net/m64/games-hs/gianasistershs.prg"
 gianna_url_end:

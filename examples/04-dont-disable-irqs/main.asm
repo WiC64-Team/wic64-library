@@ -1,4 +1,5 @@
 blank_screen = 1
+print = $ab1e
 
 * = $0801 ; 10 SYS 2064 ($0810)
 !byte $0c, $08, $0a, $00, $9e, $20, $32, $30, $36, $34, $00, $00, $00
@@ -16,6 +17,10 @@ jmp main
 
 main:
     jsr play_music_in_irq
+
+    lda #<prompt
+    ldy #>prompt
+    jsr print
 
     ; wait for initial key release
 -   jsr $ffe4
@@ -116,7 +121,12 @@ irq:
 
     jmp $ea31
 
+prompt:
+!text $0d, "   PRESS ANY KEY TO RUN TEST TRANSFER", $0d, $0d
+!text      "     THE MUSIC SHOULD KEEP PLAYING", $0d, $0d
+!text      " BORDER GREEN = SUCCESS, RED = TIMEOUT", $00
+
 ; simply send and receive 32k of data using the echo command
-request: !byte 'W', $04, $80, $fe
+request: !byte "R", $fe, $00, $80
 
 response:
