@@ -61,7 +61,6 @@ class AssemblyRange
     def resolve(symbols)
         @start = symbols.by_name(@start).value.to_s(16).rjust(4, '0')
         @stop = (symbols.by_name(@stop).value - 3).to_s(16).rjust(4, '0')
-        PP.pp(self, STDERR)
     end
 
     def to_s
@@ -154,8 +153,11 @@ class Export
         dasm_pass_1 = ''
         dasm_pass_2 = ''
 
-        STDERR.puts "Exported Symbols:"
-        PP.pp((@labels + @definitions).map { |label| label.name } , STDERR)
+        STDERR.puts "\nExported Symbols:\n\n"
+        (@labels + @definitions).each do |label|
+            STDERR.puts("\t%s" % label.name)
+        end
+        STDERR.puts("\n")
 
         dasm_pass_0.each_line do |line|
             while line =~ /L([0-9a-fA-F]{4})/
