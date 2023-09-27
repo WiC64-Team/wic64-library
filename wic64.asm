@@ -59,7 +59,6 @@ wic64_user_timeout_handler: !word $0000
 
 .user_irq_flag: !byte $00
 .timeout_handler: !word $0000
-.legacy_request: !byte $00
 .dont_update_transfer_size_next_time: !byte $01
 
 !if (wic64_include_return_to_portal != 0) {
@@ -169,34 +168,10 @@ wic64_send_header: ; EXPORT
     lda #$ff
     sta $dd03
 
+    ; read payload size (third and fourth byte)
     +wic64_set_zeropage_pointer_from wic64_request
 
-    ; initially assume this is a legacy request
-    lda #$00
-    sta .legacy_request
-
-    ; read the first magic byte of the request header:
-    ;
-    ; legacy header:   "W", <size-low>, <size-high>, <cmd>
-    ; standard header: "R", <cmd>, <size-low>, <size-high>
-
-    ldy #$00
-    lda (wic64_zeropage_pointer),y
-
-    ; request size always starts at second byte at least
-    iny
-
-    ; test for legacy request
-    cmp #"W"
-    beq .read_size_from_header
-
-    ; not a legacy request => size starts at third byte
-    iny
-
-    ; store result of test for later
-    inc .legacy_request
-
-.read_size_from_header:
+    ldy #$02
     lda (wic64_zeropage_pointer),y
     sta wic64_transfer_size
 
@@ -205,15 +180,12 @@ wic64_send_header: ; EXPORT
     sta wic64_transfer_size+1
 
 .send_header:
-    ; transfer request header
     lda #$04
     sta wic64_bytes_to_transfer
     lda #$00
     sta wic64_bytes_to_transfer+1
 
-    lda .legacy_request
-    beq +
-
+    ; don't substract 4 from payload size
     lda #$00
     sta .dont_update_transfer_size_next_time
 
@@ -292,34 +264,16 @@ wic64_receive_header: ; EXPORT
     ; esp now expects a handshake (accessing $dd01 asserts PC2 line)
     lda $dd01
 
-    ; receive the response size, assume standard request (little-endian)
-
+    ; receive the response size
     +wic64_wait_for_handshake
     lda $dd01
     sta wic64_response_size
+    sta wic64_transfer_size
+    sta wic64_bytes_to_transfer
 
     +wic64_wait_for_handshake
     lda $dd01
     sta wic64_response_size+1
-
-    lda .legacy_request
-    bne +
-
-    ; for legacy requests, the response size is sent in big-endian
-    ; for unknown reasons, so swap the bytes received
-
-    lda wic64_response_size
-    tax
-    lda wic64_response_size+1
-    sta wic64_response_size
-    stx wic64_response_size+1
-
-+   ; copy response_size to transfer_size and bytes_to_transfer
-    lda wic64_response_size
-    sta wic64_transfer_size
-    sta wic64_bytes_to_transfer
-
-    lda wic64_response_size+1
     sta wic64_transfer_size+1
     sta wic64_bytes_to_transfer+1
 
@@ -537,32 +491,16 @@ wic64_load_and_run: ; EXPORT
     cpx #.receive_and_run_size
     bne -
 
-    ; recall if this was a legacy request
-    ; if not, the ESP has substracted 2 bytes from the
-    ; response size already if the url ended with ".prg"
-    ; this was a hack that was supposed to make the client
-    ; side programming "easier"
-
-    lda .legacy_request
-    beq +
-
-    ; standard request -- correctly substract the two
-    ; load address bytes we already received from the
-    ; response size, since the ESP does not lie about
-    ; it anymore
+    ; substract the two load address bytes we already
+    ; received from the response size and store the
+    ; result in the corresponding tapebuffer location
 
     lda wic64_transfer_size
     sec
     sbc #$02
-    sta wic64_transfer_size
-    lda wic64_transfer_size+1
-    sbc #$00
-    sta wic64_transfer_size+1
-
-    ; transfer response size to tapebuffer location
-+   lda wic64_transfer_size
     sta .response_size
     lda wic64_transfer_size+1
+    sbc #$00
     sta .response_size+1
 
     jmp .tapebuffer
