@@ -1,25 +1,35 @@
 include Makefile.inc
 SOURCES = *.asm *.h
 
-.PHONY: all dasm-export dasm-export-very test prompt clean
+C64ASS = c64ass
+C64ASSFLAGS = -I W1000 -LIB .
 
-all: wic64.bin
+.PHONY: all dasm-export dasm-export-verify c64ass-acme-verify test prompt clean
+
+all: wic64.bin c64ass-acme-verify dasm-export-verify
 
 /tmp/wic64-tmp.asm: $(SOURCES)
-	echo -e '!src "wic64.h"\n!src "wic64.asm"\n' > $@
+	echo -e '*=0x1000\n!src <wic64.h>\n!src <wic64.asm>\n' > $@
 
 wic64.bin: $(SOURCES) /tmp/wic64-tmp.asm
-	$(ASM) $(ASMFLAGS) -l wic64.sym --setpc 0x1000 -o $@ /tmp/wic64-tmp.asm
-	@rm /tmp/wic64-tmp.asm
+	ACME=. $(ASM) $(ASMFLAGS) -l wic64.sym -o $@ /tmp/wic64-tmp.asm
 
 wic64-complete.bin: $(SOURCES) /tmp/wic64-tmp.asm
-	$(ASM) $(ASMFLAGS) \
+	ACME=. $(ASM) $(ASMFLAGS) \
 		-Dwic64_zeropage_pointer=166 \
 		-Dwic64_include_return_to_portal=1 \
 		-Dwic64_use_unused_labels=1 \
 		-l wic64.sym \
-		--setpc 0x1000 \
 		-o $@ \
+		/tmp/wic64-tmp.asm
+
+wic64-complete-c64ass.bin: $(SOURCES) /tmp/wic64-tmp.asm
+	$(C64ASS) $(C64ASSFLAGS) \
+		-F PLAIN \
+		-D wic64_include_return_to_portal=1 \
+		-D wic64_zeropage_pointer=166 \
+		-D wic64_use_unused_labels=1 \
+		-O $@ \
 		/tmp/wic64-tmp.asm
 	@rm /tmp/wic64-tmp.asm
 
@@ -53,6 +63,9 @@ dasm-export: wic64.dasm
 dasm-export-verify: wic64-complete.bin wic64-dasm.bin
 	diff wic64-complete.bin wic64-dasm.bin
 	@rm -f wic64-complete.bin wic64-dasm.bin wic64-standalone.dasm
+
+c64ass-acme-verify: wic64-complete.bin wic64-complete-c64ass.bin
+	diff wic64-complete.bin wic64-complete-c64ass.bin
 
 prompt:
 	@echo "Press any key to run next example"
