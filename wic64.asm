@@ -638,9 +638,9 @@ wic64_data_section_end: ; EXPORT
         !warn "wic64_optimize_for_size = ", wic64_optimize_for_size
 
         !if (wic64_include_load_and_run != 0) {
-            !warn "wic64 tapebuffer code is ", .receive_and_run_size, " bytes"
+            !warn "wic64 tapebuffer code size is ", .receive_and_run_size, " bytes"
             !if (.receive_and_run_size > 199) {
-                !warn "!! wic64 tapebuffer code does not fit into $0334-$03FB !!"
+                !error "wic64 tapebuffer code does not fit into $0334-$03FB (max. 199 bytes)"
             }
         }
     }
