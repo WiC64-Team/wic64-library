@@ -8,6 +8,7 @@
 ; comments.
 
 !zone wic64 {
+.origin = *
 
 ;---------------------------------------------------------
 ; Define wic64_wait_for_handshake_routine and the
@@ -28,54 +29,6 @@
     }
 }
 
-;--------------------------------------------------------
-; Data Section
-;--------------------------------------------------------
-
-wic64_data_section_start: ; EXPORT
-
-;---------------------------------------------------------
-; Globals
-;---------------------------------------------------------
-
-wic64_timeout:           !byte $01    ; EXPORT
-wic64_dont_disable_irqs: !byte $00    ; EXPORT
-wic64_request:           !word $0000  ; EXPORT
-wic64_response:          !word $0000  ; EXPORT
-wic64_transfer_size:     !word $0000  ; EXPORT
-wic64_response_size:     !word $0000  ; EXPORT
-wic64_bytes_to_transfer: !word $0000  ; EXPORT
-
-; these label should be local, but unfortunately acmes
-; limited scoping requires these labels to be defined
-; as global labels:
-
-wic64_counters: !byte $00, $00, $00
-wic64_user_timeout_handler: !word $0000
-
-;---------------------------------------------------------
-; Locals
-;---------------------------------------------------------
-
-.user_irq_flag: !byte $00
-.timeout_handler: !word $0000
-.dont_update_transfer_size_next_time: !byte $01
-
-!if (wic64_include_return_to_portal != 0) {
-
-.portal_request:
-!text "R", $01, .portal_url_end - .portal_url, $00
-.portal_url:
-!text "http://x.wic64.net/menue.prg"
-.portal_url_end:
-
-.portal_retries: !byte $00
-}
-
-;--------------------------------------------------------;
-
-wic64_data_section_end: ; EXPORT
-
 ;---------------------------------------------------------
 ; Implementation
 ;
@@ -87,6 +40,48 @@ wic64_data_section_end: ; EXPORT
 ; If wic64_debug is set to a non-zero value, a warning
 ; will be issued during assembly if critical sections
 ; happen to cross page boundaries.
+;---------------------------------------------------------
+
+wic64_send: ; EXPORT
+    ldx wic64_bytes_to_transfer+1
+    beq .send_remaining_bytes
+
+.send_pages
+    ldy #$00
+
+.wic64_send_critical_begin:
+
+-   lda (wic64_zeropage_pointer),y
+    sta $dd01
+    +wic64_wait_for_handshake
+
+    iny
+    bne -
+
+    inc wic64_zeropage_pointer+1
+    dex
+    bne -
+
+.send_remaining_bytes
+    ldx wic64_bytes_to_transfer
+    beq .send_done
+
+    ldy #$00
+-   lda (wic64_zeropage_pointer),y
+    sta $dd01
+    +wic64_wait_for_handshake
+
+    iny
+    dex
+    bne -
+
+.wic64_send_critical_end:
+
+.send_done
+    +wic64_update_transfer_size_after_transfer
+    clc
+    rts
+
 ;---------------------------------------------------------
 
 wic64_prepare_transfer_of_remaining_bytes: ; EXPORT
@@ -206,48 +201,6 @@ wic64_send_header: ; EXPORT
 
 ;---------------------------------------------------------
 
-wic64_send: ; EXPORT
-    ldx wic64_bytes_to_transfer+1
-    beq .send_remaining_bytes
-
-.send_pages
-    ldy #$00
-
-.wic64_send_critical_begin:
-
--   lda (wic64_zeropage_pointer),y
-    sta $dd01
-    +wic64_wait_for_handshake
-
-    iny
-    bne -
-
-.wic64_send_critical_end:
-
-    inc wic64_zeropage_pointer+1
-    dex
-    bne -
-
-.send_remaining_bytes
-    ldx wic64_bytes_to_transfer
-    beq .send_done
-
-    ldy #$00
--   lda (wic64_zeropage_pointer),y
-    sta $dd01
-    +wic64_wait_for_handshake
-
-    iny
-    dex
-    bne -
-
-.send_done
-    +wic64_update_transfer_size_after_transfer
-    clc
-    rts
-
-;---------------------------------------------------------
-
 wic64_receive_header: ; EXPORT
     ; switch userport to input
     lda #$00
@@ -299,8 +252,6 @@ wic64_receive: ; EXPORT
     iny
     bne -
 
-.wic64_receive_critical_end:
-
     inc wic64_zeropage_pointer+1
     dex
     bne -
@@ -317,6 +268,8 @@ wic64_receive: ; EXPORT
     iny
     dex
     bne -
+
+.wic64_receive_critical_end:
 
 .receive_done:
     +wic64_update_transfer_size_after_transfer
@@ -606,8 +559,57 @@ wic64_return_to_portal: ; EXPORT
 
 } ; end of !if wic64_include_load_and_run != 0
 
+;--------------------------------------------------------
+; Data Section
+;--------------------------------------------------------
+
+wic64_data_section_start: ; EXPORT
+
+;---------------------------------------------------------
+; Globals
 ;---------------------------------------------------------
 
+wic64_timeout:           !byte $01    ; EXPORT
+wic64_dont_disable_irqs: !byte $00    ; EXPORT
+wic64_request:           !word $0000  ; EXPORT
+wic64_response:          !word $0000  ; EXPORT
+wic64_transfer_size:     !word $0000  ; EXPORT
+wic64_response_size:     !word $0000  ; EXPORT
+wic64_bytes_to_transfer: !word $0000  ; EXPORT
+
+; these label should be local, but unfortunately acmes
+; limited scoping requires these labels to be defined
+; as global labels:
+
+wic64_counters: !byte $00, $00, $00
+wic64_user_timeout_handler: !word $0000
+
+;---------------------------------------------------------
+; Locals
+;---------------------------------------------------------
+
+.user_irq_flag: !byte $00
+.timeout_handler: !word $0000
+.dont_update_transfer_size_next_time: !byte $01
+
+!if (wic64_include_return_to_portal != 0) {
+
+.portal_request:
+!text "R", $01, .portal_url_end - .portal_url, $00
+.portal_url:
+!text "http://x.wic64.net/menue.prg"
+.portal_url_end:
+
+.portal_retries: !byte $00
+}
+
+;--------------------------------------------------------;
+
+wic64_data_section_end: ; EXPORT
+
+;---------------------------------------------------------
+
+; this is only required for building the dasm-export target
 !if (wic64_use_unused_labels != 0) {
     jsr wic64_execute
     jsr wic64_return_to_portal
@@ -615,16 +617,19 @@ wic64_return_to_portal: ; EXPORT
 
 ;---------------------------------------------------------
 
-!ifdef wic64_debug {
-    !if (wic64_debug != 0) {
+!ifdef wic64_build_report {
+    !if (wic64_build_report != 0) {
+
+        !warn "wic64.asm included at origin ", .origin
+
+        !warn "wic64_send: critical: ", .wic64_send_critical_begin, " - ", .wic64_send_critical_end
         !if (>.wic64_send_critical_begin != >.wic64_send_critical_end) {
-            !warn "wic64_send: critical section crosses page boundary"
-            !warn "wic64_send: critical: ", .wic64_send_critical_begin, " - ", .wic64_send_critical_end
+            !warn "!! wic64_send: critical section crosses page boundary !!"
         }
 
+        !warn "wic64_receive: critical: ", .wic64_receive_critical_begin, " - ", .wic64_receive_critical_end
         !if (>.wic64_receive_critical_begin != >.wic64_receive_critical_end) {
-            !warn "wic64_receive: critical section crosses page boundary"
-            !warn "wic64_receive: critical: ", .wic64_receive_critical_begin, " - ", .wic64_receive_critical_end
+            !warn "!! wic64_receive: critical section crosses page boundary !!"
         }
 
         !warn "wic64_zeropage_pointer = ", wic64_zeropage_pointer
@@ -633,7 +638,10 @@ wic64_return_to_portal: ; EXPORT
         !warn "wic64_optimize_for_size = ", wic64_optimize_for_size
 
         !if (wic64_include_load_and_run != 0) {
-            !warn "Tapebuffer code is ", .receive_and_run_size, " bytes"
+            !warn "wic64 tapebuffer code is ", .receive_and_run_size, " bytes"
+            !if (.receive_and_run_size > 199) {
+                !warn "!! wic64 tapebuffer code does not fit into $0334-$03FB !!"
+            }
         }
     }
 }
