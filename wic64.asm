@@ -438,17 +438,17 @@ wic64_load_and_run: ; EXPORT
 +   rts
 
 .ready_to_receive:
-    ; receive and discard load address
+    ; manually receive and discard the load address
     +wic64_wait_for_handshake
     lda $dd01
 
     +wic64_wait_for_handshake
     lda $dd01
 
-    ; default to loading to $0801 instead
+    ; default to loading to $0801 instead (equivalent to LOAD"PRG",8,0)
     +wic64_set_zeropage_pointer_to $0801
 
-    ; copy receive-and-run-routine to tape buffer
+    ; copy .receive_and_run routine to tape buffer
     ldx #$00
 -   lda .receive_and_run,x
     sta .tapebuffer,x
@@ -481,6 +481,28 @@ wic64_load_and_run: ; EXPORT
 
 .receive_and_run:
 !pseudopc .tapebuffer {
+
+    ; the receiving code does not include timeout detection
+    ; due to the size restrictions of the tapebuffer area.
+    ; But if we end up here, the ESP is already sending the
+    ; response, so it is unlikely that a timeout is going to
+    ; occur unless the ESP is reset manually during transfer.
+    ;
+    ; However, we will still make sure that the user can at
+    ; least press runstop/restore if this code gets stuck in
+    ; an infinite loop.
+
+    ; bank in kernal
+    lda #$37
+    sta $01
+
+    ; make sure nmi vector points to default nmi handler
+    lda #$47
+    sta $0318
+    lda #$fe
+    sta $0319
+
+    ; transfer pages
     ldx .response_size+1
     beq ++
 
@@ -497,6 +519,7 @@ wic64_load_and_run: ; EXPORT
     dex
     bne -
 
+    ; transfer remaining bytes
 ++  ldx .response_size
     beq ++
 
@@ -526,12 +549,16 @@ wic64_load_and_run: ; EXPORT
     adc .response_size+1
     sta .basic_end_pointer+1
 
+    ; reset stack pointer
     ldx #$ff
     txs
 
+    ; reset system to defaults
 +   jsr .kernal_init_io
     jsr .kernal_reset_vectors
     jsr .basic_reset_program_pointer
+
+    ; run program
     jmp .basic_perform_run
 
 .response_size: !word $0000
