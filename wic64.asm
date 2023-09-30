@@ -130,6 +130,12 @@ wic64_initialize: ; EXPORT
     lda #$01
     sta wic64_timeout
 
+    ; save current values of the zeropage pointer
+    lda wic64_zeropage_pointer
+    sta .user_zeropage_pointer
+    lda wic64_zeropage_pointer+1
+    sta .user_zeropage_pointer+1
+
     ; remember current state of cpu interrupt flag
 +   php
     pla
@@ -286,6 +292,12 @@ wic64_finalize: ; EXPORT
 
     ; always exit with a cleared FLAG2 bit in $dd0d as well
     lda $dd0d
+
+    ; restore previous contents of zeropage pointer
+    lda .user_zeropage_pointer
+    sta wic64_zeropage_pointer
+    lda .user_zeropage_pointer+1
+    sta wic64_zeropage_pointer+1
 
     ; remove user timeout handler
     +wic64_branch_on_timeout $0000
@@ -589,6 +601,7 @@ wic64_user_timeout_handler: !word $0000
 ;---------------------------------------------------------
 
 .user_irq_flag: !byte $00
+.user_zeropage_pointer: !word $0000
 .timeout_handler: !word $0000
 .dont_update_transfer_size_next_time: !byte $01
 
