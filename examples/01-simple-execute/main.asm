@@ -1,4 +1,4 @@
-strout = $ab1e
+print = $ab1e
 
 * = $0801 ; 10 SYS 2064 ($0810)
 !byte $0c, $08, $0a, $00, $9e, $20, $32, $30, $36, $34, $00, $00, $00
@@ -12,22 +12,20 @@ jmp main
 !macro print .string {
     lda #<.string
     ldy #>.string
-    jsr strout
+    jsr print
 }
 
 main:
-    +print newline
-
     +wic64_execute get_ip, ip
-    bcs timeout
+    bcs timed_out
 
     +print ip
     +print newline
     rts
 
-timeout:
-    +print timeout_text
+timed_out:
     +print newline
+    +print timeout_text
     rts
 
 get_ip: !byte "R", $06, $00, $00

@@ -9,11 +9,10 @@ wic64_include_load_and_run = 1
 !src "wic64.asm"
 
 main:
-    +wic64_load_and_run gianna
+    +wic64_load_and_run request
     rts ; should never be reached
 
-gianna:
-!text "R", $01, gianna_url_end - gianna_url, $00
-gianna_url:
-!text "http://x.wic64.net/m64/games-hs/gianasistershs.prg"
-gianna_url_end:
+request: !byte "R", $01, <payload_size, >payload_size
+payload: !text "http://x.wic64.net/m64/games-hs/gianasistershs.prg"
+
+payload_size = * - payload

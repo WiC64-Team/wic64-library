@@ -1,4 +1,3 @@
-blank_screen = 1
 print = $ab1e
 
 * = $0801 ; 10 SYS 2064 ($0810)
