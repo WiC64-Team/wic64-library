@@ -389,7 +389,7 @@ wic64_execute: ; EXPORT
 ; wic64_detect
 ;---------------------------------------------------------
 
-wic64_detect: !zone wic64_detect {
+wic64_detect: !zone wic64_detect { ; EXPORT
     ; make sure response size+1 is not #$0d by accident
     lda #$55
     sta wic64_response_size+1
@@ -691,6 +691,7 @@ wic64_data_section_end: ; EXPORT
 ; this is only required for building the dasm-export target
 !if (wic64_use_unused_labels != 0) {
     jsr wic64_execute
+    jsr wic64_detect
     jsr wic64_return_to_portal
 }
 
