@@ -27,4 +27,4 @@ main:
     jsr strout
     rts
 
-error_message: !text "?PORTAL LOAD ERROR", 0
+error_message: !pet "?portal load error", 0

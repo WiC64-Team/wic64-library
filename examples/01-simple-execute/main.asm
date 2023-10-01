@@ -25,11 +25,11 @@ main:
 
 timed_out:
     +print newline
-    +print timeout_text
+    +print timeout_error
     rts
 
 get_ip: !byte "R", $06, $00, $00
 ip: !fill 32, $00
 
-newline: !text $0d, $00
-timeout_text: !text "?TIMEOUT ERROR", $00
+newline: !byte $0d, $00
+timeout_error: !pet "?timeout error", $00

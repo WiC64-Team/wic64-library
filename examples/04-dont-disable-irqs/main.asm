@@ -121,9 +121,10 @@ irq:
     jmp $ea31
 
 prompt:
-!text $0d, "   PRESS ANY KEY TO RUN TEST TRANSFER", $0d, $0d
-!text      "     THE MUSIC SHOULD KEEP PLAYING", $0d, $0d
-!text      " BORDER GREEN = SUCCESS, RED = TIMEOUT", $00
+!byte $0d
+!pet "   press any key to run test transfer", $0d, $0d
+!pet "     the music should keep playing", $0d, $0d
+!pet " border green = success, red = timeout", $00
 
 ; simply send and receive 32k of data using the echo command
 request: !byte "R", $fe, $00, $80
