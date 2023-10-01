@@ -94,9 +94,6 @@ wic64_prepare_transfer_of_remaining_bytes: ; EXPORT
 ;---------------------------------------------------------
 
 wic64_update_transfer_size_after_transfer: ;EXPORT
-    lda .dont_update_transfer_size_next_time
-    beq +
-
     lda wic64_transfer_size
     sec
     sbc wic64_bytes_to_transfer
@@ -111,9 +108,7 @@ wic64_update_transfer_size_after_transfer: ;EXPORT
     sta wic64_transfer_size
     sta wic64_transfer_size+1
 
-+   lda #$01
-    sta .dont_update_transfer_size_next_time
-    clc
++   clc
     rts
 
 ;---------------------------------------------------------
@@ -181,16 +176,13 @@ wic64_send_header: ; EXPORT
     sta wic64_transfer_size+1
 
 .send_header:
-    lda #$04
-    sta wic64_bytes_to_transfer
-    lda #$00
-    sta wic64_bytes_to_transfer+1
-
-    ; don't substract 4 from payload size
-    lda #$00
-    sta .dont_update_transfer_size_next_time
-
-+   jsr wic64_send
+    ldy #$00
+-   lda (wic64_zeropage_pointer),y
+    sta $dd01
+    +wic64_wait_for_handshake
+    iny
+    cpy #$04
+    bne -
 
 .advance_zeropage_pointer:
     ; advance pointer beyond header
@@ -630,7 +622,6 @@ wic64_user_timeout_handler: !word $0000
 .user_irq_flag: !byte $00
 .user_zeropage_pointer: !word $0000
 .timeout_handler: !word $0000
-.dont_update_transfer_size_next_time: !byte $01
 
 !if (wic64_include_return_to_portal != 0) {
 
