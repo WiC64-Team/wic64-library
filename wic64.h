@@ -293,6 +293,14 @@
     jsr wic64_execute
 }
 
+;---------------------------------------------------------
+
+!macro wic64_detect {
+    jsr wic64_detect
+}
+
+;---------------------------------------------------------
+
 !macro wic64_load_and_run .request {
     +wic64_load_and_run .request, $02
 }

@@ -386,6 +386,54 @@ wic64_execute: ; EXPORT
 +   rts
 
 ;---------------------------------------------------------
+; wic64_detect
+;---------------------------------------------------------
+
+wic64_detect: !zone wic64_detect {
+    ; make sure response size+1 is not #$0d by accident
+    lda #$55
+    sta wic64_response_size+1
+
+    +wic64_branch_on_timeout .return
+    +wic64_initialize
+
+    +wic64_send_header .request
+    +wic64_send
+    +wic64_receive_header
+
+    lda wic64_response_size+1
+    cmp #$0d
+    beq .legacy_firmware ; has send "Command error." ($0d bytes)
+
+    +wic64_set_response .response
+
+    lda wic64_response_size
+    sta wic64_bytes_to_transfer+1
+    lda wic64_response_size+1
+    sta wic64_bytes_to_transfer
+
+    jsr wic64_receive
+    +wic64_finalize
+
+.new_firmware:
+    clv ; overflow clear => new firmware
+    clc ; carry clear => device present
+
+.return:
+    rts
+
+.legacy_firmware:
+    +wic64_finalize
+    clc       ; carry clear => device present
+    lda #$7f  ; overflow set => legacy firmware
+    adc #$01
+    rts
+
+.request: !byte "W", $04, $00, $00
+.response: !fill 32, 0
+}
+
+;---------------------------------------------------------
 ; wic64_load_and_run
 ;---------------------------------------------------------
 
