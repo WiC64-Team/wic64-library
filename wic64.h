@@ -359,18 +359,15 @@
     }
 
     ; no fast response, setup timeout delay loop
-+   lda #$00
-    sta wic64_counters+0
-    lda wic64_timeout
-    sta wic64_counters+1
++   lda wic64_timeout
     sta wic64_counters+2
     cmp #$01
     bne +
     lda #$48
-    sta wic64_counters+1
++   sta wic64_counters+1
 
-+   ; keep testing for FLAG2 until all counters are down to zero
-    lda #$10
+   ; keep testing for FLAG2 until all counters are down to zero
+   lda #$10
 .wait
     bit $dd0d
     !if (wic64_optimize_for_size == 0) {
