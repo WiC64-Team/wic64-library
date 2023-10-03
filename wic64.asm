@@ -378,32 +378,79 @@ wic64_execute: ; EXPORT
 ;---------------------------------------------------------
 
 wic64_detect: !zone wic64_detect { ; EXPORT
-    ; make sure response size+1 is not #$0d by accident
+
+    ; Detects whether a Wic64 present at all and also tests if the firmware
+    ; is of version 2.0.0 or greater or if it is a legacy version.
+
+    ; If no wic is present, the carry flag will be set
+    ; If it is a legacy version, the overflow flag will be set
+
+    ; Both current and legacy firmware implement get_version_string ($00)
+    ; and both support the legacy command format ("W"). Even though this library
+    ; does no longer support the legacy format by design, it does not check the
+    ; magic byte before sending a command either. Since the library expects
+    ; the payload size to be specified in the third and fourth byte (as opposed
+    ; to the second and third byte in the legacy format), it is still able to
+    ; correctly send this legacy command ("W", 4, 0, 0) with a zero payload size.
+    ;
+    ; The last few legacy firmware versions send the version as "WIC64FWV:nnnn",
+    ; so the response size is always 13 bytes. Legacy versions that don't yet
+    ; support this command send "Command error." instead, which is 14 bytes ($0e).
+    ;
+    ; For stable versions, the new firmware sends a string that is at least 6 bytes long,
+    ; but never no longer than 12 bytes in size, even if we we're to use something like
+    ; "123.234.345\0". For unstable versions, the response is always 17 bytes or longer,
+    ; e.g. the shortest possible string is something like "2.0.0-3-12345678\0".
+    ;
+    ; Thus if the reponse is either 13 or 14 bytes long, we can safely assume that
+    ; it is a legacy firmware that send the response.
+    ;
+    ; For commands in legacy format, both fimware generations send the response size
+    ; in big-endian byte order. This library always expects little-endian, so the
+    ; actual low byte ends up in wic64_response_size+1 here.
+
+    ; make sure response size+1 is not #$0d or +$0e by accident
     lda #$55
     sta wic64_response_size+1
 
-    +wic64_branch_on_timeout .return
     +wic64_initialize
 
     +wic64_send_header .request
+    bcs .return
+
     +wic64_send
+    bcs .return
+
     +wic64_receive_header
+    bcs .return
 
     lda wic64_response_size+1
+
     cmp #$0d
-    beq .legacy_firmware ; has send "Command error." ($0d bytes)
+    beq .legacy_firmware ; has send "WIC64FWV:nnnn" (13 bytes)
 
-    +wic64_set_response .response
-
-    lda wic64_response_size
-    sta wic64_bytes_to_transfer+1
-    lda wic64_response_size+1
-    sta wic64_bytes_to_transfer
-
-    jsr wic64_receive
-    +wic64_finalize
+    cmp #$0e
+    beq .legacy_firmware ; has send "Command error." (14 bytes)
 
 .new_firmware:
+    ; We still need to complete the transfer session to make
+    ; sure the firmware is in a valid state again and can accept the
+    ; next request. We'll simply send the appropriate amount of
+    ; handshakes and ignore the response data, as this avoids
+    ; having to reserve memory to store the response. Since the
+    ; reponse size never exceeds 30 bytes, the loop can be kept
+    ; simple. A slight delay between handshakes is required, though.
+
+    ldy wic64_response_size+1
+--  lda $dd01
+    ldx #$00
+-   dex
+    bne -
+    dey
+    bne --
+
+    +wic64_finalize
+
     clv ; overflow clear => new firmware
     clc ; carry clear => device present
 
@@ -418,7 +465,6 @@ wic64_detect: !zone wic64_detect { ; EXPORT
     rts
 
 .request: !byte "W", $04, $00, $00
-.response: !fill 32, 0
 }
 
 ;---------------------------------------------------------
