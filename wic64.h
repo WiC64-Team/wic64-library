@@ -6,7 +6,6 @@
 ; Define the symbols in the following section before
 ; including this file to change the defaults.
 
-
 ;---------------------------------------------------------
 ; Specify the first of two consecutive zeropage locations
 ; that can be safely used by this library
@@ -16,7 +15,7 @@
 }
 
 ;---------------------------------------------------------
-; Set to a non-zero value to enable size optimisations
+; Set to a non-zero value to enable size optimizations
 ; Optimizing for size will decrease performance
 
 !ifndef wic64_optimize_for_size {

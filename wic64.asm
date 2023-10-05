@@ -21,7 +21,7 @@
 !if (wic64_optimize_for_size != 0) {
     wic64_wait_for_handshake_routine !zone {
         +wic64_wait_for_handshake_code
-        ; rts is already handled in macro code
+        ; rts is already done from macro code
     }
 
     !macro wic64_wait_for_handshake {
@@ -718,15 +718,6 @@ wic64_user_timeout_handler: !word $0000
 ;--------------------------------------------------------;
 
 wic64_data_section_end: ; EXPORT
-
-;---------------------------------------------------------
-
-; this is only required for building the dasm-export target
-!if (wic64_use_unused_labels != 0) {
-    jsr wic64_execute
-    jsr wic64_detect
-    jsr wic64_return_to_portal
-}
 
 ;---------------------------------------------------------
 
