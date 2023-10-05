@@ -43,13 +43,14 @@
 ;---------------------------------------------------------
 
 wic64_send: ; EXPORT
-    ldx wic64_bytes_to_transfer+1
-    beq .send_remaining_bytes
-
-.send_pages
-    ldy #$00
+    +wic64_set_zeropage_pointer_from wic64_request
 
 .wic64_send_critical_begin:
+
+.send_pages
+    ldx wic64_bytes_to_transfer+1
+    beq .send_remaining_bytes
+    ldy #$00
 
 -   lda (wic64_zeropage_pointer),y
     sta $dd01
@@ -65,8 +66,8 @@ wic64_send: ; EXPORT
 .send_remaining_bytes
     ldx wic64_bytes_to_transfer
     beq .send_done
-
     ldy #$00
+
 -   lda (wic64_zeropage_pointer),y
     sta $dd01
     +wic64_wait_for_handshake
@@ -179,14 +180,14 @@ wic64_send_header: ; EXPORT
     bne -
 
 .advance_zeropage_pointer:
-    ; advance pointer beyond header
-    lda wic64_zeropage_pointer
+    ; advance request address beyond header
+    lda wic64_request
     clc
     adc #$04
-    sta wic64_zeropage_pointer
-    lda wic64_zeropage_pointer+1
+    sta wic64_request
+    lda wic64_request+1
     adc #$00
-    sta wic64_zeropage_pointer+1
+    sta wic64_request+1
 
     clc
     rts
@@ -230,13 +231,12 @@ wic64_receive_header: ; EXPORT
 wic64_receive: ; EXPORT
     +wic64_set_zeropage_pointer_from wic64_response
 
-    ldx wic64_bytes_to_transfer+1
-    beq .receive_remaining_bytes
+.wic64_receive_critical_begin:
 
 .receive_pages:
+    ldx wic64_bytes_to_transfer+1
+    beq .receive_remaining_bytes
     ldy #$00
-
-.wic64_receive_critical_begin:
 
 -   +wic64_wait_for_handshake
     lda $dd01
@@ -251,8 +251,8 @@ wic64_receive: ; EXPORT
 .receive_remaining_bytes:
     ldx wic64_bytes_to_transfer
     beq .receive_done
-
     ldy #$00
+
 -   +wic64_wait_for_handshake
     lda $dd01
     sta (wic64_zeropage_pointer),y

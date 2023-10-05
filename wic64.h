@@ -229,7 +229,6 @@
 
 !macro wic64_send .request, .size {
     +wic64_set_request .request
-    +wic64_set_zeropage_pointer_from wic64_request
 
     lda #<.size
     sta wic64_bytes_to_transfer
