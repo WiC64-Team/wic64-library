@@ -1,5 +1,3 @@
-print = $ab1e
-
 * = $0801 ; 10 SYS 2064 ($0810)
 !byte $0c, $08, $0a, $00, $9e, $20, $32, $30, $36, $34, $00, $00, $00
 
@@ -8,12 +6,7 @@ jmp main
 
 !src "wic64.h"
 !src "wic64.asm"
-
-!macro print .string {
-    lda #<.string
-    ldy #>.string
-    jsr print
-}
+!src "print.asm"
 
 main:
     +wic64_execute get_ip, ip

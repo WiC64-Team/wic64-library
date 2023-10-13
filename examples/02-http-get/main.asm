@@ -4,16 +4,18 @@
 * = $0810
 jmp main
 
-wic64_include_load_and_run = 1
 !src "wic64.h"
 !src "wic64.asm"
 !src "print.asm"
 
 main:
-    +wic64_load_and_run request
+    +wic64_execute http_get_request, response
     bcs timeout
     bne error
-    rts ; should never be reached
+
+success:
+    +print response
+    rts
 
 error:
     +wic64_execute status_request, response
@@ -29,10 +31,10 @@ timeout:
 
 timeout_error_message: !pet "?timeout error", $00
 
-request: !byte "R", $01, <payload_size, >payload_size
-payload: !text "http://x.wic64.net/m64/games-hs/gianasistershs.prg"
+http_get_request: !byte "R", $01, <payload_size, >payload_size
+http_get_payload: !text "http://x.wic64.net/test/message.txt"
 
-payload_size = * - payload
+payload_size = * - http_get_payload
 
 status_request: !byte "R", $2a, $01, $00, $01
 

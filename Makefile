@@ -46,11 +46,17 @@ c64ass-acme-verify: wic64-complete.bin wic64-complete-c64ass.bin
 	diff wic64-complete.bin wic64-complete-c64ass.bin
 
 prompt:
-	@echo "Press any key to run example $$(basename $$EXAMPLE)"
+	@echo -e "\n-- Press any key to run next example --\n"
 	@read -n1
 
 test:
-	@for d in ./examples/*; do EXAMPLE="$$d" make prompt; make -C "$$d" clean test; done
+	@for d in ./examples/*; do \
+		[[ -d $$d ]] || continue; \
+		make prompt; \
+		EXAMPLE="$$d"; \
+		echo -e "\n-- Running" $$(basename $$EXAMPLE) "--\n"; \
+		make -C "$$d" clean test || break; \
+	done
 
 clean-artefacts:
 	@rm -f *.bin

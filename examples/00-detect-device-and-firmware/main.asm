@@ -1,10 +1,3 @@
-!macro print .string {
-    print = $ab1e
-    lda #<.string
-    ldy #>.string
-    jsr print
-}
-
 * = $0801 ; 10 SYS 2064 ($0810)
 !byte $0c, $08, $0a, $00, $9e, $20, $32, $30, $36, $34, $00, $00, $00
 
@@ -13,20 +6,23 @@ jmp main
 
 !src "wic64.h"
 !src "wic64.asm"
+!src "print.asm"
 
 main:
     +wic64_detect
-    bcc +
+    bcs device_not_present
+    bne legacy_firmware
 
+    +print new_firmware_text
+    jmp done
+
+device_not_present:
     +print device_not_present_error
     jmp done
 
-+   bvc +
-
+legacy_firmware:
     +print legacy_firmware_text
     jmp done
-
-+   +print new_firmware_text
 
 done:
     rts

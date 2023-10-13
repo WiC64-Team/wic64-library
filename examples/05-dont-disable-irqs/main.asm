@@ -1,5 +1,3 @@
-print = $ab1e
-
 * = $0801 ; 10 SYS 2064 ($0810)
 !byte $0c, $08, $0a, $00, $9e, $20, $32, $30, $36, $34, $00, $00, $00
 
@@ -9,6 +7,7 @@ jmp main
 ; include wic64 lib
 !src "wic64.h"
 !src "wic64.asm"
+!src "print.asm"
 
 ; include sidfile, skipping header data
 * = $1000
@@ -16,10 +15,7 @@ jmp main
 
 main:
     jsr play_music_in_irq
-
-    lda #<prompt
-    ldy #>prompt
-    jsr print
+    +print prompt
 
     ; wait for initial key release
 -   jsr $ffe4
