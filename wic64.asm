@@ -159,10 +159,30 @@ wic64_send_header: ; EXPORT
     lda #$ff
     sta $dd03
 
-    ; read payload size (third and fourth byte)
+    ; assume standard protocol
+    lda #$04
+    sta wic64_request_header_size
+    lda #$03
+    sta wic64_response_header_size
+
     +wic64_set_zeropage_pointer_from wic64_request
 
-    ldy #$02
+    ; read protocol byte (first byte)
+    ldy #$00
+    lda (wic64_zeropage_pointer),y
+    sta .protocol
+
+    cmp #"E"
+    bne +
+
+    ; extended protocol
+    lda #$06
+    sta wic64_request_header_size
+    lda #$05
+    sta wic64_response_header_size
+
+    ; read payload size (third and fourth byte)
++   ldy #$02
     lda (wic64_zeropage_pointer),y
     sta wic64_transfer_size
 
@@ -176,14 +196,13 @@ wic64_send_header: ; EXPORT
     sta $dd01
     +wic64_wait_for_handshake
     iny
-    cpy #$04
+    cpy wic64_request_header_size
     bne -
 
-.advance_zeropage_pointer:
-    ; advance request address beyond header
+.advance_pointer_beyond_header:
     lda wic64_request
     clc
-    adc #$04
+    adc wic64_request_header_size
     sta wic64_request
     lda wic64_request+1
     adc #$00
@@ -388,8 +407,8 @@ wic64_execute: ; EXPORT
 
 wic64_detect: !zone wic64_detect { ; EXPORT
 
-    ; Detects whether a Wic64 present at all and also tests if the firmware
-    ; is of version 2.0.0 or greater or if it is a legacy version.
+    ; Detects whether a Wic64 is present at all and also tests if the firmware
+    ; is of version 2.0.0 or greater.
 
     ; If no wic is present, the carry flag will be set
     ; If it is a legacy version, the zero flag will be cleared
@@ -682,17 +701,19 @@ wic64_data_section_start: ; EXPORT
 ; Globals
 ;---------------------------------------------------------
 
-wic64_timeout:           !byte $01    ; EXPORT
-wic64_dont_disable_irqs: !byte $00    ; EXPORT
-wic64_request:           !word $0000  ; EXPORT
-wic64_response:          !word $0000  ; EXPORT
-wic64_transfer_size:     !word $0000  ; EXPORT
-wic64_bytes_to_transfer: !word $0000  ; EXPORT
+wic64_timeout:              !byte $01    ; EXPORT
+wic64_dont_disable_irqs:    !byte $00    ; EXPORT
+wic64_request_header_size:  !byte $04
+wic64_response_header_size: !byte $03
+
+wic64_request:           !word $0000     ; EXPORT
+wic64_response:          !word $0000     ; EXPORT
+wic64_transfer_size:     !word $0000     ; EXPORT
+wic64_bytes_to_transfer: !word $0000     ; EXPORT
 
 .response_header:
 wic64_status:               !byte $00    ; EXPORT
 wic64_response_size:        !word $0000  ; EXPORT
-wic64_response_header_size: !byte $03
 
 ; these label should be local, but unfortunately acmes
 ; limited scoping requires these labels to be defined
@@ -705,6 +726,7 @@ wic64_user_timeout_handler: !word $0000
 ; Locals
 ;---------------------------------------------------------
 
+.protocol: !byte $00
 .user_irq_flag: !byte $00
 .timeout_handler: !word $0000
 
