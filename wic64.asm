@@ -712,8 +712,8 @@ wic64_transfer_size:     !word $0000     ; EXPORT
 wic64_bytes_to_transfer: !word $0000     ; EXPORT
 
 .response_header:
-wic64_status:               !byte $00    ; EXPORT
-wic64_response_size:        !word $0000  ; EXPORT
+wic64_status:               !byte $00           ; EXPORT
+wic64_response_size:        !word $0000, $0000  ; EXPORT
 
 ; these label should be local, but unfortunately acmes
 ; limited scoping requires these labels to be defined
