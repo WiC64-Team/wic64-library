@@ -308,7 +308,7 @@ wic64_finalize: ; EXPORT
     +wic64_branch_on_timeout $0000
 
     ; reset to user timeout
-    lda wic64_user_timeout
+    lda wic64_configured_timeout
     sta wic64_timeout
 
     ; restore user interrupt flag and rts
@@ -723,7 +723,7 @@ wic64_response_size:        !word $0000, $0000  ; EXPORT
 ; limited scoping requires these labels to be defined
 ; as global labels:
 
-wic64_user_timeout !byte $02
+wic64_configured_timeout !byte $02
 wic64_user_timeout_handler: !word $0000
 wic64_counters: !byte $00, $00, $00
 
