@@ -307,6 +307,10 @@ wic64_finalize: ; EXPORT
     ; remove user timeout handler
     +wic64_branch_on_timeout $0000
 
+    ; reset to user timeout
+    lda wic64_user_timeout
+    sta wic64_timeout
+
     ; restore user interrupt flag and rts
     lda .user_irq_flag
     beq +
@@ -701,7 +705,7 @@ wic64_data_section_start: ; EXPORT
 ; Globals
 ;---------------------------------------------------------
 
-wic64_timeout:              !byte $01    ; EXPORT
+wic64_timeout:              !byte $02    ; EXPORT
 wic64_dont_disable_irqs:    !byte $00    ; EXPORT
 wic64_request_header_size:  !byte $04
 wic64_response_header_size: !byte $03
@@ -719,8 +723,9 @@ wic64_response_size:        !word $0000, $0000  ; EXPORT
 ; limited scoping requires these labels to be defined
 ; as global labels:
 
-wic64_counters: !byte $00, $00, $00
+wic64_user_timeout !byte $02
 wic64_user_timeout_handler: !word $0000
+wic64_counters: !byte $00, $00, $00
 
 ;---------------------------------------------------------
 ; Locals

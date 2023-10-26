@@ -83,6 +83,7 @@
 
 !macro wic64_set_timeout .timeout {
     lda #.timeout
+    sta wic64_user_timeout
     sta wic64_timeout
 }
 
@@ -278,17 +279,17 @@
 ;---------------------------------------------------------
 
 !macro wic64_execute .request, .response {
-    +wic64_execute .request, .response, $02
-}
-
-!macro wic64_execute .request, .response, .timeout {
     +wic64_set_request .request
     +wic64_set_response .response
 
+    jsr wic64_execute
+}
+
+!macro wic64_execute .request, .response, .timeout {
     lda #.timeout
     sta wic64_timeout
 
-    jsr wic64_execute
+    +wic64_execute .request, .response
 }
 
 ;---------------------------------------------------------
