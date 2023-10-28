@@ -122,7 +122,7 @@ prompt:
 !pet "     the music should keep playing", $0d, $0d
 !pet " border green = success, red = timeout", $00
 
-; simply send and receive 32k of data using the echo command
-request: !byte "R", $fe, $00, $80
+; simply send and receive about 43kb of data using the echo command
+request: !byte "R", $fe, $00, >($d000-response)
 
 response:
