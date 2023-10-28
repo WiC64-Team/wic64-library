@@ -43,7 +43,7 @@
 ;---------------------------------------------------------
 
 wic64_send: ; EXPORT
-    +wic64_set_zeropage_pointer_from wic64_request
+    +wic64_set_source_pointer_from wic64_request
 
 .wic64_send_critical_begin:
 
@@ -51,24 +51,30 @@ wic64_send: ; EXPORT
     ldx wic64_bytes_to_transfer+1
     beq .send_remaining_bytes
     ldy #$00
-
--   lda (wic64_zeropage_pointer),y
+wic64_source_pointer_pages = *+1
+-   lda $0000,y
     sta $dd01
     +wic64_wait_for_handshake
 
     iny
     bne -
 
-    inc wic64_zeropage_pointer+1
+    inc wic64_source_pointer_pages+1
     dex
     bne -
 
 .send_remaining_bytes
     ldx wic64_bytes_to_transfer
     beq .send_done
-    ldy #$00
 
--   lda (wic64_zeropage_pointer),y
+    lda wic64_source_pointer_pages
+    sta wic64_source_pointer_bytes
+    lda wic64_source_pointer_pages+1
+    sta wic64_source_pointer_bytes+1
+
+    ldy #$00
+wic64_source_pointer_bytes = *+1
+-   lda $0000,y
     sta $dd01
     +wic64_wait_for_handshake
 
@@ -165,11 +171,23 @@ wic64_send_header: ; EXPORT
     lda #$03
     sta wic64_response_header_size
 
-    +wic64_set_zeropage_pointer_from wic64_request
+    ; copy request header
+    lda wic64_request
+    sta .request_header_pointer
+    lda wic64_request+1
+    sta .request_header_pointer+1
+
+    ldy #$05
+.request_header_pointer = *+1
+-   lda $0000,y
+    sta .request_header,y
+    dey
+    bpl -
+
 
     ; read protocol byte (first byte)
     ldy #$00
-    lda (wic64_zeropage_pointer),y
+    lda .request_header,y
     sta .protocol
 
     cmp #"E"
@@ -183,23 +201,23 @@ wic64_send_header: ; EXPORT
 
     ; read payload size (third and fourth byte)
 +   ldy #$02
-    lda (wic64_zeropage_pointer),y
+    lda .request_header,y
     sta wic64_transfer_size
 
     iny
-    lda (wic64_zeropage_pointer),y
+    lda .request_header,y
     sta wic64_transfer_size+1
 
 .send_header:
     ldy #$00
--   lda (wic64_zeropage_pointer),y
+-   lda .request_header,y
     sta $dd01
     +wic64_wait_for_handshake
     iny
     cpy wic64_request_header_size
     bne -
 
-.advance_pointer_beyond_header:
+.advance_request_address_beyond_header:
     lda wic64_request
     clc
     adc wic64_request_header_size
@@ -254,7 +272,7 @@ wic64_receive_header: ; EXPORT
 ;---------------------------------------------------------
 
 wic64_receive: ; EXPORT
-    +wic64_set_zeropage_pointer_from wic64_response
+    +wic64_set_destination_pointer_from wic64_response
 
 .wic64_receive_critical_begin:
 
@@ -265,22 +283,29 @@ wic64_receive: ; EXPORT
 
 -   +wic64_wait_for_handshake
     lda $dd01
-    sta (wic64_zeropage_pointer),y
+wic64_destination_pointer_pages = *+1
+    sta $0000,y
     iny
     bne -
 
-    inc wic64_zeropage_pointer+1
+    inc wic64_destination_pointer_pages+1
     dex
     bne -
 
 .receive_remaining_bytes:
     ldx wic64_bytes_to_transfer
     beq .receive_done
-    ldy #$00
 
+    lda wic64_destination_pointer_pages
+    sta wic64_destination_pointer_bytes
+    lda wic64_destination_pointer_pages+1
+    sta wic64_destination_pointer_bytes+1
+
+    ldy #$00
 -   +wic64_wait_for_handshake
     lda $dd01
-    sta (wic64_zeropage_pointer),y
+wic64_destination_pointer_bytes = *+1
+    sta $0000,y
 
     iny
     dex
@@ -532,22 +557,11 @@ wic64_load_and_run: ; EXPORT
     bcs +
 
     +wic64_receive_header
-    bcs +
+    bcc +
+    rts
 
-.check_server_error:
-    beq .ready_to_receive
-
-.server_error:
-    ; adhere to protocol and finish the transfer
-    ; by receiving the response to the tape buffer
-    +wic64_set_zeropage_pointer_to .tapebuffer
-
-    jsr wic64_receive
-    ; we don't care if this times out or not
-
-    clc               ; no timeout occurred in wic64_receive_header
-    lda wic64_status  ; return status to user as usual
-+   rts
++   beq .ready_to_receive
+    rts
 
 .ready_to_receive:
     ; manually receive and discard the load address
@@ -556,9 +570,6 @@ wic64_load_and_run: ; EXPORT
 
     +wic64_wait_for_handshake
     lda $dd01
-
-    ; default to loading to $0801 instead (equivalent to LOAD"PRG",8,0)
-    +wic64_set_zeropage_pointer_to $0801
 
     ; copy .receive_and_run routine to tape buffer
     ldx #$00
@@ -623,11 +634,12 @@ wic64_load_and_run: ; EXPORT
     and #$10
     beq -
     lda $dd01
-    sta (wic64_zeropage_pointer),y
+.destination_pointer_pages = *+1
+    sta $0801,y
     iny
     bne -
 
-    inc wic64_zeropage_pointer+1
+    inc .destination_pointer_pages+1
     dex
     bne -
 
@@ -635,13 +647,18 @@ wic64_load_and_run: ; EXPORT
 ++  ldx .response_size
     beq ++
 
+    lda .destination_pointer_pages
+    sta .destination_pointer_bytes
+    lda .destination_pointer_pages+1
+    sta .destination_pointer_bytes+1
+
     ldy #$00
 -   lda $dd0d
     and #$10
     beq -
     lda $dd01
-    sta (wic64_zeropage_pointer),y
-
+.destination_pointer_bytes = *+1
+    sta $0000,y
     iny
     dex
     bne -
@@ -734,6 +751,7 @@ wic64_counters: !byte $00, $00, $00
 .protocol: !byte $00
 .user_irq_flag: !byte $00
 .timeout_handler: !word $0000
+.request_header: !fill 6, 0
 
 !if (wic64_include_return_to_portal != 0) {
 
@@ -767,7 +785,6 @@ wic64_data_section_end: ; EXPORT
             !warn "!! wic64_receive: critical section crosses page boundary !!"
         }
 
-        !warn "wic64_zeropage_pointer = ", wic64_zeropage_pointer
         !warn "wic64_include_load_and_run = ", wic64_include_load_and_run
         !warn "wic64_include_return_to_portal = ", wic64_include_return_to_portal
         !warn "wic64_optimize_for_size = ", wic64_optimize_for_size

@@ -7,14 +7,6 @@
 ; including this file to change the defaults.
 
 ;---------------------------------------------------------
-; Specify the first of two consecutive zeropage locations
-; that can be safely used by this library
-
-!ifndef wic64_zeropage_pointer {
-    wic64_zeropage_pointer = $a6 ; EXPORT
-}
-
-;---------------------------------------------------------
 ; Set to a non-zero value to enable size optimizations
 ; Optimizing for size will decrease performance
 
@@ -134,23 +126,23 @@
 }
 
 ;---------------------------------------------------------
-; set zeropage pointer from specified address
+; set the source pointer to read request data from
 
-!macro wic64_set_zeropage_pointer_from .addr {
+!macro wic64_set_source_pointer_from .addr {
     lda .addr
-    sta wic64_zeropage_pointer
+    sta wic64_source_pointer_pages
     lda .addr+1
-    sta wic64_zeropage_pointer+1
+    sta wic64_source_pointer_pages+1
 }
 
 ;---------------------------------------------------------
-; set zeropage pointer to the specified address
+; set the destination pointer to write response data to
 
-!macro wic64_set_zeropage_pointer_to .addr {
-    lda #<.addr
-    sta wic64_zeropage_pointer
-    lda #>.addr
-    sta wic64_zeropage_pointer+1
+!macro wic64_set_destination_pointer_from .addr {
+    lda .addr
+    sta wic64_destination_pointer_pages
+    lda .addr+1
+    sta wic64_destination_pointer_pages+1
 }
 
 ;---------------------------------------------------------
