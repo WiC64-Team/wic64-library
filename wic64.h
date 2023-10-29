@@ -139,10 +139,53 @@
 ; set the destination pointer to write response data to
 
 !macro wic64_set_destination_pointer_from .addr {
+    lda wic64_store_instruction_pages
+    cmp #$99 ; opcode of sta $nnnn,y
+    bne .done
+
     lda .addr
     sta wic64_destination_pointer_pages
     lda .addr+1
     sta wic64_destination_pointer_pages+1
+.done
+}
+
+;---------------------------------------------------------
+; set/reset store operation(s) in wic64_receive
+
+!macro wic64_set_store_instruction .addr {
+    ldy #$02
+-   lda .addr,y
+    sta wic64_store_instruction_pages,y
+    sta wic64_store_instruction_bytes,y
+    dey
+    bpl -
+
+    lda #$ad ; opcode lda absolute
+    sta wic64_destination_pointer_highbyte_inc
+}
+
+!macro wic64_reset_store_instruction {
+    jsr wic64_reset_store_instruction
+}
+
+;---------------------------------------------------------
+; set/reset fetch operation(s) in wic64_send
+
+!macro wic64_set_fetch_instruction .addr {
+    ldy #$02
+-   lda .addr,y
+    sta wic64_fetch_instruction_pages,y
+    sta wic64_fetch_instruction_bytes,y
+    dey
+    bpl -
+
+    lda #$ad ; opcode lda absolute
+    sta wic64_source_pointer_highbyte_inc
+}
+
+!macro wic64_reset_fetch_instruction {
+    jsr wic64_reset_fetch_instruction
 }
 
 ;---------------------------------------------------------

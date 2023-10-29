@@ -51,14 +51,15 @@ wic64_send: ; EXPORT
     ldx wic64_bytes_to_transfer+1
     beq .send_remaining_bytes
     ldy #$00
+wic64_fetch_instruction_pages = *
 wic64_source_pointer_pages = *+1
 -   lda $0000,y
     sta $dd01
     +wic64_wait_for_handshake
-
     iny
     bne -
 
+wic64_source_pointer_highbyte_inc = *
     inc wic64_source_pointer_pages+1
     dex
     bne -
@@ -67,17 +68,21 @@ wic64_source_pointer_pages = *+1
     ldx wic64_bytes_to_transfer
     beq .send_done
 
+    lda wic64_fetch_instruction_bytes
+    cmp #$b9 ; opcode of lda $nnnn,y
+    bne +
+
     lda wic64_source_pointer_pages
     sta wic64_source_pointer_bytes
     lda wic64_source_pointer_pages+1
     sta wic64_source_pointer_bytes+1
 
-    ldy #$00
++   ldy #$00
+wic64_fetch_instruction_bytes = *
 wic64_source_pointer_bytes = *+1
 -   lda $0000,y
     sta $dd01
     +wic64_wait_for_handshake
-
     iny
     dex
     bne -
@@ -283,11 +288,13 @@ wic64_receive: ; EXPORT
 
 -   +wic64_wait_for_handshake
     lda $dd01
+wic64_store_instruction_pages = *
 wic64_destination_pointer_pages = *+1
     sta $0000,y
     iny
     bne -
 
+wic64_destination_pointer_highbyte_inc = *
     inc wic64_destination_pointer_pages+1
     dex
     bne -
@@ -296,14 +303,19 @@ wic64_destination_pointer_pages = *+1
     ldx wic64_bytes_to_transfer
     beq .receive_done
 
+    lda wic64_store_instruction_bytes
+    cmp #$99 ; opcode of sta $nnnn,y
+    bne +
+
     lda wic64_destination_pointer_pages
     sta wic64_destination_pointer_bytes
     lda wic64_destination_pointer_pages+1
     sta wic64_destination_pointer_bytes+1
 
-    ldy #$00
++   ldy #$00
 -   +wic64_wait_for_handshake
     lda $dd01
+wic64_store_instruction_bytes = *
 wic64_destination_pointer_bytes = *+1
     sta $0000,y
 
@@ -536,6 +548,32 @@ wic64_detect: !zone wic64_detect { ; EXPORT
 
 .request: !byte "W", $04, $00, $00
 }
+
+;---------------------------------------------------------
+; wic64_reset_store_instruction
+;---------------------------------------------------------
+
+wic64_reset_store_instruction:
+    lda #$99 ; opcode sta $nnnn,y
+    sta wic64_store_instruction_pages
+    sta wic64_store_instruction_bytes
+
+    lda #$ee ; opcode inc $nnnn
+    sta wic64_destination_pointer_highbyte_inc
+    rts
+
+;---------------------------------------------------------
+; wic64_reset_store_instruction
+;---------------------------------------------------------
+
+wic64_reset_fetch_instruction:
+    lda #$b9 ; opcode lda $nnnn,y
+    sta wic64_store_instruction_pages
+    sta wic64_store_instruction_bytes
+
+    lda #$ee ; opcode inc $nnnn
+    sta wic64_destination_pointer_highbyte_inc
+    rts
 
 ;---------------------------------------------------------
 ; wic64_load_and_run
