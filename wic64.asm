@@ -241,7 +241,7 @@ wic64_receive_header: ; EXPORT
     lda #$00
     sta $dd03
 
-    ; ask esp to switch to output by pulling PA2 low
+    ; signal readiness to receive by pulling PA2 low
     lda $dd00
     and #!$04
     sta $dd00
@@ -249,10 +249,15 @@ wic64_receive_header: ; EXPORT
     ; esp now sends a handshake to confirm change of direction
     +wic64_wait_for_handshake
 
+    ; slight delay required here
+    ldy #$00
+-   dey
+    bne -
+
     ; esp now expects a handshake (accessing $dd01 asserts PC2 line)
     lda $dd01
 
-    ; receive response header (3 bytes: <status> <size-low> <size-high>)
+    ; receive response header
     ldx #$00
 -   +wic64_wait_for_handshake
     lda $dd01
