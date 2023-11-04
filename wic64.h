@@ -40,13 +40,6 @@
 }
 
 ;---------------------------------------------------------
-; Do not change - this option is only used during build
-
-!ifndef wic64_use_unused_labels {
-    wic64_use_unused_labels = 0
-}
-
-;---------------------------------------------------------
 ; Runtime options
 ;---------------------------------------------------------
 ;
