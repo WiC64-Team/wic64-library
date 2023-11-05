@@ -459,80 +459,46 @@ wic64_detect: !zone wic64_detect { ; EXPORT
     ; If no wic is present, the carry flag will be set
     ; If it is a legacy version, the zero flag will be cleared
 
-    ; Both current and legacy firmware implement get_version_string ($00) and
-    ; both support the legacy command format ("W"). Even though this library
-    ; does no longer support the legacy format by design, it does not check the
-    ; magic byte before sending a command either. Since the library expects the
-    ; payload size to be specified in the third and fourth byte (as opposed to
-    ; the second and third byte in the legacy format), it is still able to
-    ; correctly send this legacy command ("W", 4, 0, 0) with a zero payload
-    ; size.
-    ;
-    ; The last few legacy firmware versions send the version as "WIC64FMV:nnnn",
-    ; so the response size is always 13 bytes. Legacy versions that don't yet
-    ; support this command send "Command error." instead, which is 14 bytes
-    ; ($0e).
-    ;
-    ; For stable versions, the new firmware sends a string that is at least 6
-    ; bytes long, but never no longer than 12 bytes in size, even if we we're to
-    ; use something like "123.234.345\0". For unstable versions, the response is
-    ; always 17 bytes or longer, e.g. the shortest possible string is something
-    ; like "2.0.0-3-12345678\0".
-    ;
-    ; Thus if the reponse is either 13 or 14 bytes long, we can safely assume
-    ; that it is a legacy firmware that send the response.
-    ;
-    ; For commands in legacy format, both fimware generations send the response
-    ; size in big-endian byte order. Although This library always expects
-    ; little-endian, it also receives the header to .response_header, where the
-    ; first byte is the wic64_status and the second byte is the low byte of
-    ; wic64_response_size, so the high byte will end up in wic64_status and the
-    ; low byte will still end up in wic64_response_size. For this command,
-    ; wic64_response_header_size will be adjusted in order to receive only two
-    ; header bytes.
+    ; This routine sends a version request using the standard protocol.
 
-    ; first make sure wic64_response_size is not #$0d or $0e by accident
-    lda #$55
-    sta wic64_response_size
+    lda wic64_timeout
+    sta .previous_timeout
+    lda #$01
+    sta wic64_timeout
 
     +wic64_initialize
 
+    ; The legacy firmware will accept all request bytes even if it doesn't
+    ; understand them, so if sending the request header times out, no device is
+    ; present at all, regardless of which firmware is running.
     +wic64_send_header .request
     bcs .return
 
-    +wic64_send
-    bcs .return
+    ; Set response size to $55 before receiving response header. Firmware 2.0.0
+    ; will send a response between 6 and 30 bytes, so if this value stays the
+    ; same, we must talking to a legacy firmware.
+    lda #$55
+    sta wic64_response_size
 
-    ; receive only two header bytes this time
-    dec wic64_response_header_size
     +wic64_receive_header
-    inc wic64_response_header_size
+    ; ignore possible timeout from legacy firmware
 
-    bcs .return
+    lda .previous_timeout
+    sta wic64_timeout
 
     lda wic64_response_size
-
-    cmp #$0d
-    beq .legacy_firmware ; has send "WIC64FWV:nnnn" (13 bytes)
-
-    cmp #$0e
-    beq .legacy_firmware ; has send "Command error." (14 bytes)
+    cmp #$55
+    beq .legacy_firmware
 
 .new_firmware:
-    ; We still need to complete the transfer session to make sure the firmware
-    ; is in a valid state again and can accept the next request. We'll simply
-    ; send the appropriate amount of handshakes and ignore the response data, as
-    ; this avoids having to reserve memory to store the response. Since the
-    ; reponse size never exceeds 30 bytes, the loop can be kept simple. A slight
-    ; delay between handshakes is required, though.
+    ; Simply send the appropriate amount of handshakes and ignore the response
+    ; data, as this avoids having to reserve memory to store the response. Since
+    ; the response size never exceeds 30 bytes, the loop can be kept simple.
 
     ldy wic64_response_size
---  lda $dd01
-    ldx #$00
--   dex
-    bne -
+-   lda $dd01
     dey
-    bne --
+    bne -
 
     lda #$00
     sta wic64_status
@@ -551,7 +517,8 @@ wic64_detect: !zone wic64_detect { ; EXPORT
     clc             ; carry clear => device present
     rts
 
-.request: !byte "W", $04, $00, $00
+.request: !byte "R", $00, $00, $00
+.previous_timeout: !byte $00
 }
 
 ;---------------------------------------------------------
