@@ -249,11 +249,6 @@ wic64_receive_header: ; EXPORT
     ; esp now sends a handshake to confirm change of direction
     +wic64_wait_for_handshake
 
-    ; slight delay required here
-    ldy #$00
--   dey
-    bne -
-
     ; esp now expects a handshake (accessing $dd01 asserts PC2 line)
     lda $dd01
 
