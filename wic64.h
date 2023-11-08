@@ -111,11 +111,34 @@
 ; calls, since it avoids having to check for a timeout after
 ; every single call. See the documentation for details.
 
-!macro wic64_branch_on_timeout .addr {
+!macro wic64_set_timeout_handler .addr {
     lda #<.addr
-    sta wic64_user_timeout_handler
+    sta wic64_timeout_handler
     lda #>.addr
-    sta wic64_user_timeout_handler+1
+    sta wic64_timeout_handler+1
+    tsx
+    stx wic64_timeout_handler_stackpointer
+}
+
+!macro wic64_unset_timeout_handler {
+    lda #$00
+    sta wic64_timeout_handler
+    sta wic64_timeout_handler+1
+}
+
+!macro wic64_set_error_handler .addr {
+    lda #<.addr
+    sta wic64_error_handler
+    lda #>.addr
+    sta wic64_error_handler+1
+    tsx
+    stx wic64_error_handler_stackpointer
+}
+
+!macro wic64_unset_error_handler {
+    lda #$00
+    sta wic64_error_handler
+    sta wic64_error_handler+1
 }
 
 ;---------------------------------------------------------

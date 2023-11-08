@@ -20,7 +20,7 @@ main:
     jsr screen_on
 
     +wic64_initialize
-    +wic64_branch_on_timeout handle_timeout
+    +wic64_set_timeout_handler handle_timeout
 
     ; then send the image data from the relevant memory areas
     ; in a single echo request
@@ -41,6 +41,7 @@ main:
     +wic64_receive bgcolor
 
     +wic64_finalize
+    +wic64_unset_timeout_handler
 
     ; the image should now be displayed again
     jmp *

@@ -189,7 +189,6 @@ wic64_send_header: ; EXPORT
     dey
     bpl -
 
-
     ; read protocol byte (first byte)
     ldy #$00
     lda .request_header,y
@@ -272,7 +271,24 @@ wic64_receive_header: ; EXPORT
 
     clc
     lda wic64_status
+    beq .no_error_handler
+
+    ldx wic64_handlers_suspended
+    beq .no_error_handler
+
+    ldx wic64_error_handler
+    bne .handle_error
+    lda wic64_error_handler+1
+    bne .handle_error
+
+.no_error_handler
     rts
+
+.handle_error
+    +wic64_finalize
+    ldx wic64_error_handler_stackpointer
+    txs
+    jmp (wic64_error_handler)
 
 ;---------------------------------------------------------
 
@@ -382,41 +398,32 @@ wic64_handle_timeout:
         pla
     }
 
-    ; if a timeout handler was installed, jmp to the given
-    ; address on the same call stack level as the user code
-    ; calling the wic64_* subroutine, else just rts.
-
-    ; save user timeout handler temporarily
-    ; (will be unset by wic64_finalize)
-    lda wic64_user_timeout_handler
-    sta .timeout_handler
-    lda wic64_user_timeout_handler+1
-    sta .timeout_handler+1
-
     ; finalize automatically on timeouts
     jsr wic64_finalize
 
     ; set carry to indicate timeout
     sec
 
+    lda wic64_handlers_suspended
+    beq .no_timeout_handler
+
     ; check for user timeout handler != $0000
-    lda .timeout_handler
+    lda wic64_timeout_handler
     bne .call_timeout_handler
-    lda .timeout_handler+1
+    lda wic64_timeout_handler+1
     bne .call_timeout_handler
 
 .no_timeout_handler:
-    ; the user will have to handle the error manually
+    ; the user will have to handle the timeout manually
     ; after each wic64_* call
     rts
 
 .call_timeout_handler:
-    ; discard return address on stack and jump, i.e.
-    ; act as if we simply branch inside the users routine
-    ; itself (one level up)
-    pla
-    pla
-    jmp (.timeout_handler)
+    ; reset stackpointer to the stacklevel
+    ; from which the handler was installed
+    ldx wic64_timeout_handler_stackpointer
+    txs
+    jmp (wic64_timeout_handler)
 
 ;---------------------------------------------------------
 ; wic64_execute
@@ -453,8 +460,9 @@ wic64_detect: !zone wic64_detect { ; EXPORT
 
     ; This routine sends a version request using the standard protocol.
 
-    lda wic64_timeout
-    sta .previous_timeout
+    lda #$00
+    sta wic64_handlers_suspended
+
     lda #$01
     sta wic64_timeout
 
@@ -463,20 +471,20 @@ wic64_detect: !zone wic64_detect { ; EXPORT
     ; The legacy firmware will accept all request bytes even if it doesn't
     ; understand them, so if sending the request header times out, no device is
     ; present at all, regardless of which firmware is running.
+
     +wic64_send_header .request
     bcs .return
 
-    ; Set response size to $55 before receiving response header. Firmware 2.0.0
-    ; will send a response between 6 and 30 bytes, so if this value stays the
-    ; same, we must talking to a legacy firmware.
+    ; Set response size to the distinct value of $55 before receiving response
+    ; header. Firmware 2.0.0 will send a response between 6 and 30 bytes, so if
+    ; the response size still contains $55 after receiving the response header
+    ; we know that a legacy firmware is running.
+
     lda #$55
     sta wic64_response_size
 
     +wic64_receive_header
     ; ignore possible timeout from legacy firmware
-
-    lda .previous_timeout
-    sta wic64_timeout
 
     lda wic64_response_size
     cmp #$55
@@ -495,22 +503,25 @@ wic64_detect: !zone wic64_detect { ; EXPORT
     lda #$00
     sta wic64_status
 
-    +wic64_finalize ; zero flag set => new firmware
-    clc             ; carry clear => device present
-
-.return:
-    rts
+    clc               ; carry clear => device present
+    jmp .return
 
 .legacy_firmware:
     lda #$01
     sta wic64_status
+    clc               ; carry clear => device present
 
-    +wic64_finalize ; zero flag clear => legacy firmware
-    clc             ; carry clear => device present
+.return:
+    +wic64_finalize
+
+    ; resume handlers
+    lda #$01
+    sta wic64_handlers_suspended
+
+    lda wic64_status  ; zero flag set => new firmware, clear => legacy firmware
     rts
 
 .request: !byte "R", $00, $00, $00
-.previous_timeout: !byte $00
 }
 
 ;---------------------------------------------------------
@@ -742,8 +753,12 @@ wic64_response_size:        !word $0000, $0000  ; EXPORT
 ; limited scoping requires these labels to be defined
 ; as global labels:
 
-wic64_configured_timeout !byte $02
-wic64_user_timeout_handler: !word $0000
+wic64_configured_timeout: !byte $02
+wic64_timeout_handler: !word $0000
+wic64_timeout_handler_stackpointer: !byte $00
+wic64_error_handler: !word $0000
+wic64_error_handler_stackpointer: !byte $00
+wic64_handlers_suspended: !byte $01
 wic64_counters: !byte $00, $00, $00
 
 ;---------------------------------------------------------
@@ -752,7 +767,6 @@ wic64_counters: !byte $00, $00, $00
 
 .protocol: !byte $00
 .user_irq_flag: !byte $00
-.timeout_handler: !word $0000
 .request_header: !fill 6, 0
 
 !if (wic64_include_return_to_portal != 0) {
