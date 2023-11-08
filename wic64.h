@@ -253,7 +253,6 @@
 ;---------------------------------------------------------
 
 !macro wic64_send_header {
-    ; request must be set beforehand
     jsr wic64_send_header
 }
 
@@ -265,21 +264,20 @@
 ;---------------------------------------------------------
 
 !macro wic64_send {
-    ; request must be set beforehand
     +wic64_prepare_transfer_of_remaining_bytes
     jsr wic64_send
 }
 
 ;---------------------------------------------------------
 
-!macro wic64_send .request {
-    +wic64_set_request .request
+!macro wic64_send .source {
+    +wic64_set_request .source
     +wic64_prepare_transfer_of_remaining_bytes
     jsr wic64_send
 }
 
-!macro wic64_send .request, .size {
-    +wic64_set_request .request
+!macro wic64_send .source, .size {
+    +wic64_set_request .source
 
     lda #<.size
     sta wic64_bytes_to_transfer
@@ -298,19 +296,18 @@
 ;---------------------------------------------------------
 
 !macro wic64_receive {
-    ; response must be set beforehand
     +wic64_prepare_transfer_of_remaining_bytes
     jsr wic64_receive
 }
 
-!macro wic64_receive .response {
-    +wic64_set_response .response
+!macro wic64_receive .destination {
+    +wic64_set_response .destination
     +wic64_prepare_transfer_of_remaining_bytes
     jsr wic64_receive
 }
 
-!macro wic64_receive .response, .size {
-    +wic64_set_response .response
+!macro wic64_receive .destination, .size {
+    +wic64_set_response .destination
 
     lda #<.size
     sta wic64_bytes_to_transfer
