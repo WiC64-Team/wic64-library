@@ -341,9 +341,6 @@ wic64_finalize: ; EXPORT
     ; always exit with a cleared FLAG2 bit in $dd0d as well
     lda $dd0d
 
-    ; remove user timeout handler
-    +wic64_branch_on_timeout $0000
-
     ; reset to user timeout
     lda wic64_configured_timeout
     sta wic64_timeout
