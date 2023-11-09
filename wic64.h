@@ -143,6 +143,7 @@
 
 ;---------------------------------------------------------
 ; set the source pointer to read request data from
+; in wic64_send (self-modifying)
 
 !macro wic64_set_source_pointer_from .addr {
     lda .addr
@@ -153,6 +154,7 @@
 
 ;---------------------------------------------------------
 ; set the destination pointer to write response data to
+; in wic64_receive (self-modifying)
 
 !macro wic64_set_destination_pointer_from .addr {
     lda wic64_store_instruction_pages

@@ -125,41 +125,6 @@ wic64_update_transfer_size_after_transfer: ;EXPORT
 
 ;---------------------------------------------------------
 
-wic64_initialize: ; EXPORT
-    ; always start with a cleared FLAG2 bit in $dd0d
-    lda $dd0d
-
-    ; make sure timeout is at least $01
-    lda wic64_timeout
-    cmp #$01
-    bcs +
-
-    lda #$01
-    sta wic64_timeout
-
-    ; remember current state of cpu interrupt flag
-+   php
-    pla
-    and #!$04
-    sta .user_irq_flag
-
-    ; disable irqs during transfers unless the user
-    ; chooses otherwise
-    lda wic64_dont_disable_irqs
-    bne +
-    sei
-
-+   ; ensure pa2 is set to output
-    lda $dd02
-    ora #$04
-    sta $dd02
-
-    ; clear carry -- will be set if transfer times out
-    clc
-    rts
-
-;---------------------------------------------------------
-
 wic64_send_header: ; EXPORT
     ; ask esp to switch to input by setting pa2 high
     lda $dd00
@@ -343,6 +308,41 @@ wic64_destination_pointer_bytes = *+1
 
 .receive_done:
     +wic64_update_transfer_size_after_transfer
+    clc
+    rts
+
+;---------------------------------------------------------
+
+wic64_initialize: ; EXPORT
+    ; always start with a cleared FLAG2 bit in $dd0d
+    lda $dd0d
+
+    ; make sure timeout is at least $01
+    lda wic64_timeout
+    cmp #$01
+    bcs +
+
+    lda #$01
+    sta wic64_timeout
+
+    ; remember current state of cpu interrupt flag
++   php
+    pla
+    and #!$04
+    sta .user_irq_flag
+
+    ; disable irqs during transfers unless the user
+    ; chooses otherwise
+    lda wic64_dont_disable_irqs
+    bne +
+    sei
+
++   ; ensure pa2 is set to output
+    lda $dd02
+    ora #$04
+    sta $dd02
+
+    ; clear carry -- will be set if transfer times out
     clc
     rts
 
