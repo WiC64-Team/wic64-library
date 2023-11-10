@@ -34,7 +34,7 @@ payload: !text "http://x.wic64.net/m64/games-hs/gianasistershs.prg"
 
 payload_size = * - payload
 
-status_request: !byte "R", $2a, $01, $00, $01
+status_request: !byte "R", WIC64_GET_STATUS_MESSAGE, $01, $00, $01
 
 status_prefix: !pet "?request failed: ", $00
 

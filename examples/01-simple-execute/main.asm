@@ -21,7 +21,7 @@ timed_out:
     +print timeout_error
     rts
 
-get_ip: !byte "R", $06, $00, $00
+get_ip: !byte "R", WIC64_GET_IP, $00, $00
 ip: !fill 32, $00
 
 newline: !byte $0d, $00

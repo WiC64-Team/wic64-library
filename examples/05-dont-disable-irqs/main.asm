@@ -123,6 +123,6 @@ prompt:
 !pet " border green = success, red = timeout", $00
 
 ; simply send and receive about 43kb of data using the echo command
-request: !byte "R", $fe, $00, >($d000-response)
+request: !byte "R", WIC64_ECHO, $00, >($d000-response)
 
 response:

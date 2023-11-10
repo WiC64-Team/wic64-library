@@ -33,5 +33,5 @@ error:
 timeout_error_message: !pet $0d, "?timeout error", $00
 status_prefix: !pet $0d, "?request failed: ", $00
 
-status_request: !byte "R", $2a, $01, $00, $01
+status_request: !byte "R", WIC64_GET_STATUS_MESSAGE, $01, $00, $01
 response:

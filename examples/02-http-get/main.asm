@@ -31,12 +31,12 @@ timeout:
 
 timeout_error_message: !pet "?timeout error", $00
 
-http_get_request: !byte "R", $01, <payload_size, >payload_size
+http_get_request: !byte "R", WIC64_HTTP_GET, <payload_size, >payload_size
 http_get_payload: !text "http://x.wic64.net/test/message.txt"
 
 payload_size = * - http_get_payload
 
-status_request: !byte "R", $2a, $01, $00, $01
+status_request: !byte "R", WIC64_GET_STATUS_MESSAGE, $01, $00, $01
 
 status_prefix: !pet "?request failed: ", $00
 

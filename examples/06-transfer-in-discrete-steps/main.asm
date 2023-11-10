@@ -46,7 +46,7 @@ main:
     ; the image should now be displayed again
     jmp *
 
-echo_request: !byte "R", $fe, <10000, >10000
+echo_request: !byte "R", WIC64_ECHO, <10000, >10000
 
 handle_timeout:
     lda #$02
