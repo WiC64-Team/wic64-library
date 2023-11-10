@@ -315,7 +315,11 @@ wic64_update_transfer_size_after_transfer: ;EXPORT
 
 ;---------------------------------------------------------
 
-wic64_limit_bytes_to_transfer_to_remaining_bytes: !zone {
+wic64_limit_bytes_to_transfer_to_remaining_bytes:
+    lda .protocol
+    cmp #"E"
+    beq ++
+
     lda wic64_transfer_size+1
     cmp wic64_bytes_to_transfer+1
     bcc +
@@ -330,7 +334,6 @@ wic64_limit_bytes_to_transfer_to_remaining_bytes: !zone {
 
 ++  clc
     rts
-}
 
 ;---------------------------------------------------------
 
