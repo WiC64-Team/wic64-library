@@ -44,6 +44,7 @@
 
 wic64_send: ; EXPORT
     +wic64_set_source_pointer_from wic64_request
+    jsr wic64_limit_bytes_to_transfer_to_remaining_bytes
 
 .wic64_send_critical_begin:
 
@@ -92,35 +93,6 @@ wic64_source_pointer_bytes = *+1
 .send_done
     +wic64_update_transfer_size_after_transfer
     clc
-    rts
-
-;---------------------------------------------------------
-
-wic64_prepare_transfer_of_remaining_bytes: ; EXPORT
-    lda wic64_transfer_size
-    sta wic64_bytes_to_transfer
-    lda wic64_transfer_size+1
-    sta wic64_bytes_to_transfer+1
-    rts
-
-;---------------------------------------------------------
-
-wic64_update_transfer_size_after_transfer: ;EXPORT
-    lda wic64_transfer_size
-    sec
-    sbc wic64_bytes_to_transfer
-    sta wic64_transfer_size
-
-    lda wic64_transfer_size+1
-    sbc wic64_bytes_to_transfer+1
-    sta wic64_transfer_size+1
-    bcs +
-
-    lda #$00
-    sta wic64_transfer_size
-    sta wic64_transfer_size+1
-
-+   clc
     rts
 
 ;---------------------------------------------------------
@@ -259,6 +231,7 @@ wic64_receive_header: ; EXPORT
 
 wic64_receive: ; EXPORT
     +wic64_set_destination_pointer_from wic64_response
+    jsr wic64_limit_bytes_to_transfer_to_remaining_bytes
 
 .wic64_receive_critical_begin:
 
@@ -310,6 +283,54 @@ wic64_destination_pointer_bytes = *+1
     +wic64_update_transfer_size_after_transfer
     clc
     rts
+
+;---------------------------------------------------------
+
+wic64_prepare_transfer_of_remaining_bytes: ; EXPORT
+    lda wic64_transfer_size
+    sta wic64_bytes_to_transfer
+    lda wic64_transfer_size+1
+    sta wic64_bytes_to_transfer+1
+    rts
+
+;---------------------------------------------------------
+
+wic64_update_transfer_size_after_transfer: ;EXPORT
+    lda wic64_transfer_size
+    sec
+    sbc wic64_bytes_to_transfer
+    sta wic64_transfer_size
+
+    lda wic64_transfer_size+1
+    sbc wic64_bytes_to_transfer+1
+    sta wic64_transfer_size+1
+    bcs +
+
+    lda #$00
+    sta wic64_transfer_size
+    sta wic64_transfer_size+1
+
++   clc
+    rts
+
+;---------------------------------------------------------
+
+wic64_limit_bytes_to_transfer_to_remaining_bytes: !zone {
+    lda wic64_transfer_size+1
+    cmp wic64_bytes_to_transfer+1
+    bcc +
+    bne ++
+
+    lda wic64_transfer_size
+    cmp wic64_bytes_to_transfer
+    bcc +
+    jmp ++
+
++   jsr wic64_prepare_transfer_of_remaining_bytes
+
+++  clc
+    rts
+}
 
 ;---------------------------------------------------------
 
