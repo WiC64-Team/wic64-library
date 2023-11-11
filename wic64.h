@@ -86,13 +86,13 @@
 ; The default is to disable irqs during transfer.
 ;
 
-!macro wic64_do_disable_irqs {
-    lda #$00
+!macro wic64_dont_disable_irqs {
+    lda #$01
     sta wic64_dont_disable_irqs
 }
 
-!macro wic64_dont_disable_irqs {
-    lda #$01
+!macro wic64_disable_irqs {
+    lda #$00
     sta wic64_dont_disable_irqs
 }
 
