@@ -21,6 +21,7 @@ main:
 
     +wic64_initialize
     +wic64_set_timeout_handler handle_timeout
+    +wic64_set_error_handler handle_error
 
     ; then send the image data from the relevant memory areas
     ; in a single echo request
@@ -49,9 +50,10 @@ main:
 echo_request: !byte "R", WIC64_ECHO, <10000, >10000
 
 handle_timeout:
+handle_error:
     lda #$02
     sta $d020
-    jmp *
+    rts
 
 sync_to_top:
 -   lda $d012
