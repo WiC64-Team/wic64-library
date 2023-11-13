@@ -352,7 +352,7 @@ wic64_initialize: ; EXPORT
     ; remember current state of cpu interrupt flag
 +   php
     pla
-    and #!$04
+    and #$04
     sta .user_irq_flag
 
     ; disable irqs during transfers unless the user
@@ -387,7 +387,7 @@ wic64_finalize: ; EXPORT
 
     ; restore user interrupt flag and rts
     lda .user_irq_flag
-    beq +
+    bne +
 
     cli
     jmp .finalize_done
