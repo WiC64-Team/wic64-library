@@ -892,11 +892,11 @@ You can use this command to test for a specific firmware version.
 
 #### `WIC64_GET_STATUS_MESSAGE` 
 
-`!byte "R", WIC64_GET_STATUS_MESSAGE, $01, $00, <uppercase>`
+`!byte "R", WIC64_GET_STATUS_MESSAGE, $01, $00, <case>`
 
 Returns the status message of the last executed command as a null-terminated
-upper- or lowercase PETSCII string. If the single payload byte is set to a
-non-zero value, the string will be formated in uppercase.
+upper- or lowercase PETSCII string. If the single payload byte `<case>` is set
+to a non-zero value, the string will be formated in uppercase.
 
 The response will be limited to 40 bytes, including the terminating null byte.
 
