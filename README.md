@@ -908,6 +908,10 @@ never exceeds 39 characters.
 
 ### HTTP
 
+HTTP commands that are sent using the standard or extended protocol send the user-agent header `User-Agent: WiC64/<version>`.
+
+Commands send via the legacy protocol continue to send `User-Agent: ESP32HTTPClient`, as implemented in the legacy firmware. 
+
 ****
 
 #### `WIC64_HTTP_GET`          
