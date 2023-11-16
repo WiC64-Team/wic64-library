@@ -934,6 +934,24 @@ The length of the resulting URL must not exceed 2000 characters, as various
 servers restrict the total length of an URL. See
 https://stackoverflow.com/a/417184 for the rationale behind this limit.
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+|CLIENT_ERROR|No URL specified|
+|CLIENT_ERROR|URL too long (max 2000 bytes)|
+|CLIENT_ERROR|Malformed URL|
+|INTERNAL_ERROR|Failed to create HTTP client|
+|NETWORK_ERROR|Failed to open connection|
+|NETWORK_ERROR|Failed to follow redirect|
+|NETWORK_ERROR|Failed to read HTTP response|
+|SERVER_ERROR|Failed to fetch response headers|
+  
+</details>
+
 ***
 
 #### `WIC64_HTTP_GET_ENCODED`  
@@ -970,6 +988,24 @@ This URL will be converted to `http://www.foo.org?data=DEADBEEF` before
 performing the request.
 </details>
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+|CLIENT_ERROR|No URL specified|
+|CLIENT_ERROR|URL too long (max 2000 bytes)|
+|CLIENT_ERROR|Malformed URL|
+|INTERNAL_ERROR|Failed to create HTTP client|
+|NETWORK_ERROR|Failed to open connection|
+|NETWORK_ERROR|Failed to follow redirect|
+|NETWORK_ERROR|Failed to read HTTP response|
+|SERVER_ERROR|Failed to fetch response headers|
+  
+</details>
+
 ***
 
 #### `WIC64_HTTP_POST_URL` 
@@ -999,6 +1035,27 @@ Posts `<data>` to the URL previously set via
 The data will be POSTed with `Content-Type: application/octet-stream` and can be
 accessed on the server side using the HTTP POST variable `data` by default, e.g.
 when using PHP, the data will be accessible via `$_POST["data"]`.
+
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+|CLIENT_ERROR|No URL specified|
+|CLIENT_ERROR|URL too long (max 2000 bytes)|
+|CLIENT_ERROR|Malformed URL|
+|INTERNAL_ERROR|Failed to create HTTP client|
+|NETWORK_ERROR|Failed to open connection|
+|NETWORK_ERROR|Failed to follow redirect|
+|NETWORK_ERROR|Failed to send POST data to server|
+|NETWORK_ERROR|Failed to send POST body footer to server|
+|NETWORK_ERROR|Failed to send POST data|
+|NETWORK_ERROR|Failed to read HTTP response|
+|SERVER_ERROR|Failed to fetch response headers|
+  
+</details>
 
 ***
 
