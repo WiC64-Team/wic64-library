@@ -1194,6 +1194,9 @@ character, so special chars in the passphrase can be entered on the C64 by using
 `↑hh`, e.g. `↑5f` will encode the value `0x5f`,  which corresponds to the ASCII
 underscore character.
 
+Note that this command will take about 3 seconds before a response is sent, 
+so the client-side timeout needs to be set to at least four seconds.
+
 <details>
   <summary>Errors</summary>
 
@@ -1210,10 +1213,13 @@ underscore character.
 
 `!byte "R", WIC64_CONNECT_WITH_SSID_STRING, <size-l>, <size-h>, <ssid>, $01, <passphrase>, $01, $01`
 
-Connect to the network specified by `<ssid>` using the spefified `<passphrase`.
+Connect to the network specified by `<ssid>` using the specified `<passphrase`.
 
 Special characters in the passphrase can be encoded in the same manner as
 described for [`WIC64_CONNECT_WITH_SSID_INDEX`](#WIC64_CONNECT_WITH_SSID_INDEX).
+
+Note that this command will take about 3 seconds before a response is sent, 
+so the client-side timeout needs to be set to at least four seconds.
 
 <details>
   <summary>Errors</summary>
