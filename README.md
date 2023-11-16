@@ -1449,11 +1449,11 @@ alternative commands or have never worked or been documented properly.
 
 When a deprecated command is requested, a corresponding log message is issued
 that states the specific reason for the deprecation and possible alternatives.
-In addition, the message is send as the response of the command. This means that
-older/obsolete programs might happen to display this message on screen,
-hopefully giving the end user a hint that the program is obsolete. This will
-mainly happen with the original utility programs distributed with the legacy
-firmware.
+In addition, the message is send in the response payload of the command. This 
+means that older/obsolete programs might happen to display this message on 
+screen, hopefully giving the end user a hint that the program is obsolete. 
+This will mainly happen with the original utility programs distributed with 
+the legacy firmware.
 
 #### Legacy firmware version
 *0x07*
