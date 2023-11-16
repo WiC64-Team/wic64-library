@@ -1022,6 +1022,18 @@ url_size = * - url
 ```
 </details>
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+|CLIENT_ERROR|No URL specified|
+|NETWORK_ERROR|Could not open connection|
+  
+</details>
+
 ***
 
 #### `WIC64_TCP_READ`  
@@ -1031,6 +1043,17 @@ url_size = * - url
 Reads the currently available data from the TCP connection previously opened by
 [`WIC64_TCP_OPEN`](#WIC64_TCP_OPEN).
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+|NETWORK_ERROR|TCP connection closed|
+  
+</details>
+
 ***
 
 #### `WIC64_TCP_WRITE` 
@@ -1039,6 +1062,18 @@ Reads the currently available data from the TCP connection previously opened by
 
 Writes the specified `<data>` to the TCP connection previously opened by
 [`WIC64_TCP_OPEN`](#WIC64_TCP_OPEN).
+
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+|NETWORK_ERROR|TCP connection closed|
+|NETWORK_ERROR|Failed to write TCP data|
+
+</details>
 
 ***
 
