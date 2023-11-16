@@ -349,14 +349,14 @@ zero flag and accumulator value can be checked after both the low level function
 
 The possible status codes are:
 
-```
-0 = SUCCESS: No errors occurred, request has been handled successfully
-1 = INTERNAL_ERROR: Something unexpected happened (possible firmware bug)
-2 = CLIENT_ERROR: The client has send a malformed request
-3 = CONNECTION_ERROR: No WiFi connection available (remote requests)
-4 = NETWORK_ERROR: A remote request has failed on the transport level
-5 = SERVER_ERROR: A remote server has reported an error
-```
+|Symbol (defined by wic64.h)|Code|Description|
+|:-----|:---|:----------|
+|WIC64_SUCCESS|0|No errors occurred, request has been handled successfully|
+|WIC64_INTERNAL_ERROR|1|Something unexpected happened (possible firmware bug)|
+|WIC64_CLIENT_ERROR|2|The client has send a malformed request|
+|WIC64_CONNECTION_ERROR|3|No WiFi connection available (remote requests)|
+|WIC64_NETWORK_ERROR|4|A remote request has failed on the transport level|
+|WIC64_SERVER_ERROR|5|A remote server has reported an error|
 
 These codes thus describe the general category of the error. The ESP log will
 usually provide more detailed information. 
@@ -934,6 +934,24 @@ The length of the resulting URL must not exceed 2000 characters, as various
 servers restrict the total length of an URL. See
 https://stackoverflow.com/a/417184 for the rationale behind this limit.
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+|CLIENT_ERROR|No URL specified|
+|CLIENT_ERROR|URL too long (max 2000 bytes)|
+|CLIENT_ERROR|Malformed URL|
+|INTERNAL_ERROR|Failed to create HTTP client|
+|NETWORK_ERROR|Failed to open connection|
+|NETWORK_ERROR|Failed to follow redirect|
+|NETWORK_ERROR|Failed to read HTTP response|
+|SERVER_ERROR|Failed to fetch response headers|
+  
+</details>
+
 ***
 
 #### `WIC64_HTTP_GET_ENCODED`  
@@ -970,6 +988,24 @@ This URL will be converted to `http://www.foo.org?data=DEADBEEF` before
 performing the request.
 </details>
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+|CLIENT_ERROR|No URL specified|
+|CLIENT_ERROR|URL too long (max 2000 bytes)|
+|CLIENT_ERROR|Malformed URL|
+|INTERNAL_ERROR|Failed to create HTTP client|
+|NETWORK_ERROR|Failed to open connection|
+|NETWORK_ERROR|Failed to follow redirect|
+|NETWORK_ERROR|Failed to read HTTP response|
+|SERVER_ERROR|Failed to fetch response headers|
+  
+</details>
+
 ***
 
 #### `WIC64_HTTP_POST_URL` 
@@ -1000,6 +1036,27 @@ The data will be POSTed with `Content-Type: application/octet-stream` and can be
 accessed on the server side using the HTTP POST variable `data` by default, e.g.
 when using PHP, the data will be accessible via `$_POST["data"]`.
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+|CLIENT_ERROR|No URL specified|
+|CLIENT_ERROR|URL too long (max 2000 bytes)|
+|CLIENT_ERROR|Malformed URL|
+|INTERNAL_ERROR|Failed to create HTTP client|
+|NETWORK_ERROR|Failed to open connection|
+|NETWORK_ERROR|Failed to follow redirect|
+|NETWORK_ERROR|Failed to send POST data to server|
+|NETWORK_ERROR|Failed to send POST body footer to server|
+|NETWORK_ERROR|Failed to send POST data|
+|NETWORK_ERROR|Failed to read HTTP response|
+|SERVER_ERROR|Failed to fetch response headers|
+  
+</details>
+
 ***
 
 ### TCP
@@ -1022,6 +1079,18 @@ url_size = * - url
 ```
 </details>
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+|CLIENT_ERROR|No URL specified|
+|NETWORK_ERROR|Could not open connection|
+  
+</details>
+
 ***
 
 #### `WIC64_TCP_READ`  
@@ -1031,6 +1100,17 @@ url_size = * - url
 Reads the currently available data from the TCP connection previously opened by
 [`WIC64_TCP_OPEN`](#WIC64_TCP_OPEN).
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+|NETWORK_ERROR|TCP connection closed|
+  
+</details>
+
 ***
 
 #### `WIC64_TCP_WRITE` 
@@ -1039,6 +1119,18 @@ Reads the currently available data from the TCP connection previously opened by
 
 Writes the specified `<data>` to the TCP connection previously opened by
 [`WIC64_TCP_OPEN`](#WIC64_TCP_OPEN).
+
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+|NETWORK_ERROR|TCP connection closed|
+|NETWORK_ERROR|Failed to write TCP data|
+
+</details>
 
 ***
 
@@ -1073,6 +1165,16 @@ be closed before performing the scan and reconnected once the scan has finished.
 
 If no networks are discovered, status code 1 (`NETWORK_ERROR`) is reported.
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|INTERNAL_ERROR|Scan failed|
+|NETWORK_ERROR|No networks found|
+
+</details>
+
 ***
 
 #### `WIC64_CONNECT_WITH_SSID_INDEX`  
@@ -1092,6 +1194,16 @@ character, so special chars in the passphrase can be entered on the C64 by using
 `↑hh`, e.g. `↑5f` will encode the value `0x5f`,  which corresponds to the ASCII
 underscore character.
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CLIENT_ERROR|ssid empty|
+|CLIENT_ERROR|passphrase decode failed|
+
+</details>
+
 ***
 
 #### `WIC64_CONNECT_WITH_SSID_STRING` 
@@ -1102,6 +1214,16 @@ Connect to the network specified by `<ssid>` using the spefified `<passphrase`.
 
 Special characters in the passphrase can be encoded in the same manner as
 described for [`WIC64_CONNECT_WITH_SSID_INDEX`](#WIC64_CONNECT_WITH_SSID_INDEX).
+
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CLIENT_ERROR|ssid empty|
+|CLIENT_ERROR|passphrase decode failed|
+
+</details>
 
 ***
 
@@ -1141,6 +1263,16 @@ is_connected: !byte "R", WIC64_IS_CONNECTED, $01, $00, $05
 no_response_expected:
 
 ```
+</details>
+
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+
 </details>
 
 ***
@@ -1207,6 +1339,16 @@ set before each request that requires a custom setting.
 This is only required in case you are sending a request payload in discrete
 chunks and need more time on the C64 side to prepare the next chunk of data, for
 example when reading the data from disk or generating it programatically.
+
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CLIENT_ERROR|ESP timeout not specified|
+|CLIENT_ERROR|ESP timeout must be >= 1 second|
+
+</details>
 
 ***
 
@@ -1288,6 +1430,15 @@ null-terminated ASCII string in strftime(3) format `%H:%M:%S %d-%m-%Y`, e.g.
 
 The response will always be 20 bytes (19 characters + nullbyte).
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|INTERNAL_ERROR|Could not get local time|
+
+</details>
+
 ***
 
 ### Firmware update
@@ -1307,6 +1458,15 @@ returned by `esp_https_ota()`.
 
 This command can only be used with URLs referring to firmware images hosted on
 `wic64.net`.
+
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|INTERNAL_ERROR|textual representation of the error code returned by `esp_https_ota()`|
+
+</details>
 
 ***
 
@@ -1449,11 +1609,11 @@ alternative commands or have never worked or been documented properly.
 
 When a deprecated command is requested, a corresponding log message is issued
 that states the specific reason for the deprecation and possible alternatives.
-In addition, the message is send as the response of the command. This means that
-older/obsolete programs might happen to display this message on screen,
-hopefully giving the end user a hint that the program is obsolete. This will
-mainly happen with the original utility programs distributed with the legacy
-firmware.
+In addition, the message is send in the response payload of the command. This 
+means that older/obsolete programs might happen to display this message on 
+screen, hopefully giving the end user a hint that the program is obsolete. 
+This will mainly happen with the original utility programs distributed with 
+the legacy firmware.
 
 #### Legacy firmware version
 *0x07*
