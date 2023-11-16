@@ -349,14 +349,14 @@ zero flag and accumulator value can be checked after both the low level function
 
 The possible status codes are:
 
-```
-0 = SUCCESS: No errors occurred, request has been handled successfully
-1 = INTERNAL_ERROR: Something unexpected happened (possible firmware bug)
-2 = CLIENT_ERROR: The client has send a malformed request
-3 = CONNECTION_ERROR: No WiFi connection available (remote requests)
-4 = NETWORK_ERROR: A remote request has failed on the transport level
-5 = SERVER_ERROR: A remote server has reported an error
-```
+|Symbol (defined by wic64.h)|Code|Description|
+|:-----|:---|:----------|
+|WIC64_SUCCESS|0|No errors occurred, request has been handled successfully|
+|WIC64_INTERNAL_ERROR|1|Something unexpected happened (possible firmware bug)|
+|WIC64_CLIENT_ERROR|2|The client has send a malformed request|
+|WIC64_CONNECTION_ERROR|3|No WiFi connection available (remote requests)|
+|WIC64_NETWORK_ERROR|4|A remote request has failed on the transport level|
+|WIC64_SERVER_ERROR|5|A remote server has reported an error|
 
 These codes thus describe the general category of the error. The ESP log will
 usually provide more detailed information. 
