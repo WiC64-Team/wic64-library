@@ -1165,6 +1165,16 @@ be closed before performing the scan and reconnected once the scan has finished.
 
 If no networks are discovered, status code 1 (`NETWORK_ERROR`) is reported.
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|INTERNAL_ERROR|Scan failed|
+|NETWORK_ERROR|No networks found|
+
+</details>
+
 ***
 
 #### `WIC64_CONNECT_WITH_SSID_INDEX`  
@@ -1184,6 +1194,16 @@ character, so special chars in the passphrase can be entered on the C64 by using
 `↑hh`, e.g. `↑5f` will encode the value `0x5f`,  which corresponds to the ASCII
 underscore character.
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CLIENT_ERROR|ssid empty|
+|CLIENT_ERROR|passphrase decode failed|
+
+</details>
+
 ***
 
 #### `WIC64_CONNECT_WITH_SSID_STRING` 
@@ -1194,6 +1214,16 @@ Connect to the network specified by `<ssid>` using the spefified `<passphrase`.
 
 Special characters in the passphrase can be encoded in the same manner as
 described for [`WIC64_CONNECT_WITH_SSID_INDEX`](#WIC64_CONNECT_WITH_SSID_INDEX).
+
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CLIENT_ERROR|ssid empty|
+|CLIENT_ERROR|passphrase decode failed|
+
+</details>
 
 ***
 
@@ -1233,6 +1263,16 @@ is_connected: !byte "R", WIC64_IS_CONNECTED, $01, $00, $05
 no_response_expected:
 
 ```
+</details>
+
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+
 </details>
 
 ***
@@ -1299,6 +1339,16 @@ set before each request that requires a custom setting.
 This is only required in case you are sending a request payload in discrete
 chunks and need more time on the C64 side to prepare the next chunk of data, for
 example when reading the data from disk or generating it programatically.
+
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CLIENT_ERROR|ESP timeout not specified|
+|CLIENT_ERROR|ESP timeout must be >= 1 second|
+
+</details>
 
 ***
 
@@ -1380,6 +1430,15 @@ null-terminated ASCII string in strftime(3) format `%H:%M:%S %d-%m-%Y`, e.g.
 
 The response will always be 20 bytes (19 characters + nullbyte).
 
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|INTERNAL_ERROR|Could not get local time|
+
+</details>
+
 ***
 
 ### Firmware update
@@ -1399,6 +1458,15 @@ returned by `esp_https_ota()`.
 
 This command can only be used with URLs referring to firmware images hosted on
 `wic64.net`.
+
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|INTERNAL_ERROR|textual representation of the error code returned by `esp_https_ota()`|
+
+</details>
 
 ***
 
