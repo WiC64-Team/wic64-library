@@ -165,7 +165,7 @@ section [Timeout and error handling](#timeout-and-error-handling).
 ; just a simple macro to print a string
 !macro print .string {                      
     lda #<.string
-    ldx #>.string
+    ldy #>.string
     jsr $ab1e
 }
 
