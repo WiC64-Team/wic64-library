@@ -1233,6 +1233,25 @@ so the client-side timeout needs to be set to at least four seconds.
 
 ***
 
+#### `WIC64_IS_CONFIGURED`      
+
+Determines whether the WiFi connection has been configured, i.e. whether
+a non-empty SSID is stored in flash. 
+
+Returns an `INTERNAL_ERROR` (1) with "WiFi not configured" if no SSID is
+stored in flash.
+
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|INTERNAL_ERROR|WiFi not configured|
+
+</details>
+
+***
+
 #### `WIC64_IS_CONNECTED`            
 
 `!byte "R", WIC64_IS_CONNECTED, $01, $00, <seconds>`
@@ -1276,6 +1295,7 @@ no_response_expected:
 
 |Code|Message |
 |:---|:-------|
+|CLIENT_ERROR|WiFi not configured|
 |CONNECTION_ERROR|WiFi not connected|
 |CONNECTION_ERROR|No IP address assigned|
 
