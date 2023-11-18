@@ -327,6 +327,14 @@
 
 ;---------------------------------------------------------
 
+!macro wic64_execute .request {
+    +wic64_set_store_instruction wic64_nop_instruction
+    +wic64_execute .request, $0000
+    tax
+    +wic64_reset_store_instruction
+    txa
+}
+
 !macro wic64_execute .request, .response {
     +wic64_set_request .request
     +wic64_set_response .response

@@ -784,6 +784,7 @@ wic64_error_handler: !word $0000
 wic64_error_handler_stackpointer: !byte $00
 wic64_handlers_suspended: !byte $01
 wic64_counters: !byte $00, $00, $00
+wic64_nop_instruction: !byte $ea, $ea, $ea
 
 ;---------------------------------------------------------
 ; Locals
