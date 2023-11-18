@@ -432,15 +432,24 @@ bne legacy_firmware_detected
 ***
 
 #### `wic64_execute`
+
+`+wic64_execute <request>`
+
 `+wic64_execute <request>, <response>`
 
 `+wic64_execute <request>, <response>, <timeout>`
 
-Executes the request at the address specified by `<request>` and receives the
-response payload to the memory address specified by `<response>`. The optional
-`<timeout>` argument specifies the client side [timeout](#wic64_timeout) to use
-while executing this request. If no timeout argument is specified, the value of
-`wic64_timeout` is used by default.
+Executes the request at the address specified by `<request>` and receives 
+the response payload to the memory address specified by `<response>`. 
+
+If no `<response>` address is specified, the response payload will still be received, 
+but the data will be discarded. This is useful for commands that don't send a response
+payload, or to avoid having to reserve memory for a response that will not be used in 
+any way.
+
+The optional `<timeout>` argument specifies the client side 
+[timeout](#wic64_timeout) to use while executing this request. If no timeout 
+argument is specified, the value of `wic64_timeout` is used by default.
 
 > [!NOTE] 
 > The response will simply be received to the area starting at `<response>` in
