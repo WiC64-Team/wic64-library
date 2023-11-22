@@ -535,12 +535,12 @@ error condition. For semi-automated timeout and error handling, see
   +wic64_send                    ; send the request payload, if any
   bcs timeout                    ; abort on timeout 
 
-  +wic64_receive_header          ; receive the request header, including status code and payload size
+  +wic64_receive_header          ; receive the response header, including status code and payload size
   bcs timeout                    ; abort on timeout 
   bne error                      ; status code has been loaded into accumulator, non-zero => error
 
   +wic64_set_response response   ; set the destination address to store the response payload to
-  +wic64_receive                 ; receive the request payload, if any 
+  +wic64_receive                 ; receive the response payload, if any 
   bcs timeout
 
   +wic64_finalize                ; finalize transfer session and reset userport to input
