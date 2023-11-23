@@ -734,16 +734,16 @@ wic64_load_and_run: ; EXPORT
 .receive_and_run_size = .receive_and_run_end - .receive_and_run
 
 ;---------------------------------------------------------
-; wic64_return_to_portal
+; wic64_enter_portal
 ;---------------------------------------------------------
 
-!if (wic64_include_return_to_portal != 0) {
+!if (wic64_include_enter_portal != 0) {
 
-wic64_return_to_portal: ; EXPORT
+wic64_enter_portal: ; EXPORT
     +wic64_load_and_run .portal_request
     rts
 
-} ; end of !if wic64_include_return_to_portal != 0
+} ; end of !if wic64_include_enter_portal != 0
 
 ;---------------------------------------------------------
 
@@ -794,7 +794,7 @@ wic64_nop_instruction: !byte $ea, $ea, $ea
 .user_irq_flag: !byte $00
 .request_header: !fill 6, 0
 
-!if (wic64_include_return_to_portal != 0) {
+!if (wic64_include_enter_portal != 0) {
 
 .portal_request:
 !text "R", $01, <.portal_url_size, >.portal_url_size
@@ -827,7 +827,7 @@ wic64_data_section_end: ; EXPORT
         }
 
         !warn "wic64_include_load_and_run = ", wic64_include_load_and_run
-        !warn "wic64_include_return_to_portal = ", wic64_include_return_to_portal
+        !warn "wic64_include_enter_portal = ", wic64_include_enter_portal
         !warn "wic64_optimize_for_size = ", wic64_optimize_for_size
 
         !if (wic64_include_load_and_run != 0) {

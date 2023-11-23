@@ -20,19 +20,19 @@
 ;
 ; Using this option implies wic64_include_load_run = 1
 
-!ifndef wic64_include_return_to_portal {
-    wic64_include_return_to_portal = 0
+!ifndef wic64_include_enter_portal {
+    wic64_include_enter_portal = 0
 }
 
 ;---------------------------------------------------------
 ; Set to a non-zero value to include code to load and run
 ; programs.
 ;
-; Will be set by default if wic64_include_return_to_portal
+; Will be set by default if wic64_include_enter_portal
 ; is used
 
 !ifndef wic64_include_load_and_run {
-    !if (wic64_include_return_to_portal != 0) {
+    !if (wic64_include_enter_portal != 0) {
         wic64_include_load_and_run = 1
     } else {
         wic64_include_load_and_run = 0
@@ -373,10 +373,10 @@
     jsr wic64_load_and_run
 }
 
-!if (wic64_include_return_to_portal != 0) {
+!if (wic64_include_enter_portal != 0) {
 
-!macro wic64_return_to_portal {
-    jsr wic64_return_to_portal
+!macro wic64_enter_portal {
+    jsr wic64_enter_portal
 }
 
 }
