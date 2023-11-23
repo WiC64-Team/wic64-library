@@ -432,15 +432,24 @@ bne legacy_firmware_detected
 ***
 
 #### `wic64_execute`
+
+`+wic64_execute <request>`
+
 `+wic64_execute <request>, <response>`
 
 `+wic64_execute <request>, <response>, <timeout>`
 
-Executes the request at the address specified by `<request>` and receives the
-response payload to the memory address specified by `<response>`. The optional
-`<timeout>` argument specifies the client side [timeout](#wic64_timeout) to use
-while executing this request. If no timeout argument is specified, the value of
-`wic64_timeout` is used by default.
+Executes the request at the address specified by `<request>` and receives 
+the response payload to the memory address specified by `<response>`. 
+
+If no `<response>` address is specified, the response payload will still be received, 
+but the data will be discarded. This is useful for commands that don't send a response
+payload, or to avoid having to reserve memory for a response that will not be used in 
+any way.
+
+The optional `<timeout>` argument specifies the client side 
+[timeout](#wic64_timeout) to use while executing this request. If no timeout 
+argument is specified, the value of `wic64_timeout` is used by default.
 
 > [!NOTE] 
 > The response will simply be received to the area starting at `<response>` in
@@ -526,12 +535,12 @@ error condition. For semi-automated timeout and error handling, see
   +wic64_send                    ; send the request payload, if any
   bcs timeout                    ; abort on timeout 
 
-  +wic64_receive_header          ; receive the request header, including status code and payload size
+  +wic64_receive_header          ; receive the response header, including status code and payload size
   bcs timeout                    ; abort on timeout 
   bne error                      ; status code has been loaded into accumulator, non-zero => error
 
   +wic64_set_response response   ; set the destination address to store the response payload to
-  +wic64_receive                 ; receive the request payload, if any 
+  +wic64_receive                 ; receive the response payload, if any 
   bcs timeout
 
   +wic64_finalize                ; finalize transfer session and reset userport to input
