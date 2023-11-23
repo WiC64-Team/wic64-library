@@ -37,13 +37,13 @@ can optionally use the following convenience functions:**
 
   - [`wic64_load_and_run`](#wic64_load_and_run) - Loads a new program and runs
     it, replacing the current program
-  - [`wic64_return_to_portal`](#wic64_return_to_portal) - Returns to the WiC64
+  - [`wic64_enter_portal`](#wic64_enter_portal) - Enters the WiC64
     portal
 
 Since not every program will need these functions, they are not included by
 default. To include them, use the assembly time options
 [`wic64_include_load_and_run`](#wic64_include_load_and_run) and
-[`wic64_include_return_to_portal`](#wic64_include_return_to_portal).
+[`wic64_include_enter_portal`](#wic64_include_enter_portal).
 
 **For more advanced use cases, these low-level functions can perform transfers
 in smaller steps, providing more fine-grained control:**
@@ -252,11 +252,11 @@ subroutine will be included in the assembly.
 
 ***
 
-### `wic64_include_return_to_portal` 
+### `wic64_include_enter_portal` 
 *(default: 0)*
 
 If set to a non-zero value, the convenience macro
-[`wic64_return_to_portal`](#wic64_return_to_portal) and the corresponding
+[`wic64_enter_portal`](#wic64_enter_portal) and the corresponding
 subroutine will be included in the assembly. Note that setting this option will
 also set [`wic64_include_load_and_run`](#wic64_include_load_and_run)
 automatically.
@@ -487,9 +487,9 @@ value.
 
 ***
 
-#### `wic64_return_to_portal`
+#### `wic64_enter_portal`
 
-`+wic64_return_to_portal`
+`+wic64_enter_portal`
 
 Loads and runs the WiC64 portal program using
 [`wic64_load_and_run`](#wic64_load_and_run). 
@@ -498,7 +498,7 @@ Programs that run from the WiC64 portal should allow the end user to return to
 the portal by pressing the back-arrow key.
 
 This function is only vailable if the assembly time option
-[`wic64_include_return_to_portal`](#wic64_include_return_to_portal) is set to a
+[`wic64_include_enter_portal`](#wic64_include_enter_portal) is set to a
 non-zero value.
 
 ***
