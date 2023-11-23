@@ -1102,6 +1102,15 @@ url_size = * - url
 
 ***
 
+#### `WIC64_TCP_AVAILABLE`
+
+`!byte "R", WIC64_TCP_AVAILABLE, $00, $00`
+
+Returns the number of bytes available for reading from the currently opened TCP 
+connection as an unsigned 16-bit little-endian value.
+
+***
+
 #### `WIC64_TCP_READ`  
 
 `!byte "R", WIC64_TCP_READ, $00, $00`
