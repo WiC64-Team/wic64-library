@@ -4,7 +4,7 @@
 * = $0810
 jmp main
 
-wic64_include_return_to_portal = 1
+wic64_include_enter_portal = 1
 !src "wic64.h"
 !src "wic64.asm"
 !src "print.asm"
@@ -12,7 +12,7 @@ wic64_include_return_to_portal = 1
 main:
     ; this should simply load the portal program from wic64.net
     ; and run it:
-    +wic64_return_to_portal
+    +wic64_enter_portal
 
     ; If we end up here, something has gone wrong...
     bcs timeout
