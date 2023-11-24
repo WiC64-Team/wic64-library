@@ -1750,5 +1750,5 @@ extended command protocol.
 
 #### Factory reset
 
-The factory reset command has been deprecated. If this turns out to be required
-at all, it will be implemented from the web interface instead.
+The factory reset command has been deprecated. A factory reset can be performed
+from the webserver interface.
