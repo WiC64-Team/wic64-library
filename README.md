@@ -1553,7 +1553,25 @@ reboot_request: !byte "R", WIC64_REBOOT, $00, $00
 
 `!byte "R", WIC64_ECHO, <data-size-l>, <data-size-h>, <data>...`
 
-This command echoes the received payload data back to the client.
+This command echoes the request payload data back to the client.
+
+***
+
+#### `WIC64_FORCE_TIMEOUT` 
+
+`!byte "R", WIC64_FORCE_TIMEOUT, $00|$01, $00, [<seconds>]`
+
+Delays for the specified number of `<seconds>`, or for one second if `<seconds>` 
+is not specified. Can be used to test timeout detection and handling.
+
+***
+
+#### `WIC64_FORCE_ERROR` 
+
+`!byte "R", WIC64_FORCE_ERROR, $00, $00`
+
+Always sends an `INTERNAL_ERROR` (1) and sets the status message to `Test error`.
+Can be used to test error handling.
 
 ***
 
