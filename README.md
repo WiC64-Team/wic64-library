@@ -443,13 +443,16 @@ Executes the request at the address specified by `<request>` and receives
 the response payload to the memory address specified by `<response>`. 
 
 If no `<response>` address is specified, the response payload will still be received, 
-but the data will be discarded. This is useful for commands that don't send a response
-payload, or to avoid having to reserve memory for a response that will not be used in 
-any way.
+but the data will be discarded, unless a custom store operation has been installed using 
+`+wic64_set_store_instruction`. This is allows the user to omit the response address
+in case the response payload is handled by a custom store instruction, when the command
+does not to send a response to begin with, or when the user is simply not interested 
+in the response.
 
 The optional `<timeout>` argument specifies the client side 
-[timeout](#wic64_timeout) to use while executing this request. If no timeout 
-argument is specified, the value of `wic64_timeout` is used by default.
+timeout to use while executing this request. If no timeout 
+argument is specified, the value set using 
+[`wic64_set_timeout`](#wic64_set_timeout) is used.
 
 > [!NOTE] 
 > The response will simply be received to the area starting at `<response>` in
