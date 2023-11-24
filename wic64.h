@@ -1,5 +1,13 @@
 !zone wic64 {
 ;---------------------------------------------------------
+; Constant symbols
+;---------------------------------------------------------
+wic64_lda_abs = $ad
+wic64_sta_abs_y = $99
+wic64_lda_abs_y = $b9
+wic64_inc_abs = $ee
+
+;---------------------------------------------------------
 ; Assembly time options
 ;---------------------------------------------------------
 ;
@@ -158,7 +166,7 @@
 
 !macro wic64_set_destination_pointer_from .addr {
     lda wic64_store_instruction_pages
-    cmp #$99 ; opcode of sta $nnnn,y
+    cmp #wic64_sta_abs_y ; opcode of sta $nnnn,y
     bne .done
 
     lda .addr
@@ -179,7 +187,7 @@
     dey
     bpl -
 
-    lda #$ad ; opcode lda absolute
+    lda #wic64_lda_abs
     sta wic64_destination_pointer_highbyte_inc
 }
 
@@ -198,7 +206,7 @@
     dey
     bpl -
 
-    lda #$ad ; opcode lda absolute
+    lda #wic64_lda_abs
     sta wic64_source_pointer_highbyte_inc
 }
 
@@ -328,11 +336,20 @@
 ;---------------------------------------------------------
 
 !macro wic64_execute .request {
+    lda wic64_store_instruction_pages
+    cmp #wic64_sta_abs_y
+    bne +
     +wic64_set_store_instruction wic64_nop_instruction
-    +wic64_execute .request, $0000
+
++   +wic64_execute .request, $0000
     tax
+
+    lda wic64_store_instruction_pages
+    cmp #wic64_sta_abs_y
+    bne +
     +wic64_reset_store_instruction
-    txa
+
++   txa
 }
 
 !macro wic64_execute .request, .response {

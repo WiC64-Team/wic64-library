@@ -70,7 +70,7 @@ wic64_source_pointer_highbyte_inc = *
     beq .send_done
 
     lda wic64_fetch_instruction_bytes
-    cmp #$b9 ; opcode of lda $nnnn,y
+    cmp #wic64_lda_abs_y
     bne +
 
     lda wic64_source_pointer_pages
@@ -258,7 +258,7 @@ wic64_destination_pointer_highbyte_inc = *
     beq .receive_done
 
     lda wic64_store_instruction_bytes
-    cmp #$99 ; opcode of sta $nnnn,y
+    cmp #wic64_sta_abs_y
     bne +
 
     lda wic64_destination_pointer_pages
@@ -553,11 +553,11 @@ wic64_detect: !zone wic64_detect { ; EXPORT
 ;---------------------------------------------------------
 
 wic64_reset_store_instruction:
-    lda #$99 ; opcode sta $nnnn,y
+    lda #wic64_sta_abs_y
     sta wic64_store_instruction_pages
     sta wic64_store_instruction_bytes
 
-    lda #$ee ; opcode inc $nnnn
+    lda #wic64_inc_abs
     sta wic64_destination_pointer_highbyte_inc
     rts
 
@@ -566,11 +566,11 @@ wic64_reset_store_instruction:
 ;---------------------------------------------------------
 
 wic64_reset_fetch_instruction:
-    lda #$b9 ; opcode lda $nnnn,y
+    lda #wic64_lda_abs_y
     sta wic64_store_instruction_pages
     sta wic64_store_instruction_bytes
 
-    lda #$ee ; opcode inc $nnnn
+    lda #wic64_inc_abs
     sta wic64_destination_pointer_highbyte_inc
     rts
 
