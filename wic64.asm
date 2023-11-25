@@ -206,19 +206,20 @@ wic64_receive_header: ; EXPORT
     sta wic64_transfer_size+1
     sta wic64_bytes_to_transfer+1
 
-    clc
     lda wic64_status
     beq .no_error_handler
 
-    ldx wic64_handlers_suspended
+    lda wic64_handlers_suspended
     beq .no_error_handler
 
-    ldx wic64_error_handler
+    lda wic64_error_handler
     bne .handle_error
     lda wic64_error_handler+1
     bne .handle_error
 
 .no_error_handler
+    clc
+    lda wic64_status
     rts
 
 .handle_error
