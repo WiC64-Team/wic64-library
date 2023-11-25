@@ -6,6 +6,7 @@ wic64_lda_abs = $ad
 wic64_sta_abs_y = $99
 wic64_lda_abs_y = $b9
 wic64_inc_abs = $ee
+wic64_nop = $ea
 
 ;---------------------------------------------------------
 ; Assembly time options
@@ -345,7 +346,7 @@ wic64_inc_abs = $ee
     tax
 
     lda wic64_store_instruction_pages
-    cmp #wic64_sta_abs_y
+    cmp #wic64_nop
     bne +
     +wic64_reset_store_instruction
 
