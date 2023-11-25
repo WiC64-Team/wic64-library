@@ -1171,15 +1171,15 @@ Closes the TCP connection previously opened by
 
 `!byte "R", WIC64_SCAN_WIFI_NETWORKS, $00, $00`
 
-Scans for WiFi networks in the vicinity and returns a list of up to 15 
+Scans for WiFi networks in the vicinity and returns a list of up to 10
 WiFi networks in the following format:
 
-`[<index> 0x01 <ssid> 0x01 <rssi> 0x01]...]`
+`[<index> 0x00 <ssid> 0x00 <rssi> 0x00]...] 0xff`
 
 Where `<index>` is the index of the entry in the network list as an ASCII
 decimal literal, `<ssid>` is the SSID, and `<rssi>` is the networks signal
 strength as an ASCII decimal literal. Each field is followed by a separator byte
-with the value `0x01`.
+with the value `0x00`. In addition, the response is terminated with `0xff`.
 
 If a WiFi connection is already established when calling this command, it will
 be closed before performing the scan and reconnected once the scan has finished.
@@ -1195,6 +1195,12 @@ If no networks are discovered, status code 1 (`NETWORK_ERROR`) is reported.
 |NETWORK_ERROR|No networks found|
 
 </details>
+
+> [!NOTE] 
+> If this command is used with the legacy protocol, the individual fields
+> in the response payload will be separated with `0x01` instead of `0x00`,
+> and no terminating byte `0xff` will be appended. This maintains backwards
+> compatibility with existing programs.
 
 ***
 
@@ -1259,7 +1265,11 @@ so the client-side timeout needs to be set to at least four seconds.
 Determines whether the WiFi connection has been configured, i.e. whether
 a non-empty SSID is stored in flash. 
 
-Returns an `INTERNAL_ERROR` (1) with "WiFi not configured" if no SSID is
+Returns the length of the configured passphrase as a single unsigned 8-bit value
+in the response payload. If the passphrase is empty or not configured, the returned 
+value will be `0x00`.
+
+Reports an `INTERNAL_ERROR` (1) with "WiFi not configured" if no SSID is
 stored in flash.
 
 <details>
