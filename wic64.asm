@@ -582,19 +582,16 @@ wic64_reset_fetch_instruction:
 !if (wic64_include_load_and_run != 0) {
 
 wic64_load_and_run: ; EXPORT
-    sei
-
-    lda #$00
-    sta wic64_dont_disable_irqs
-
     +wic64_initialize
     +wic64_send_header
-    bcs +
+    bcc +
+    rts
 
-    +wic64_send
-    bcs +
++   +wic64_send
+    bcc +
+    rts
 
-    +wic64_receive_header
++   +wic64_receive_header
     bcc +
     rts
 
