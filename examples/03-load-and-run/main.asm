@@ -13,7 +13,6 @@ main:
     +wic64_load_and_run request
     bcs timeout
     bne error
-    rts ; should never be reached
 
 error:
     +wic64_execute status_request, response
