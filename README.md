@@ -569,7 +569,7 @@ flag unless `wic64_dont_disable_irqs` is set.
 #### `wic64_set_request`
 `+wic64_set_request <request>`
 
-Sets the address from where the request should read.
+Sets the address from where the request should be read.
 
 *** 
 
