@@ -337,20 +337,16 @@ wic64_nop = $ea
 ;---------------------------------------------------------
 
 !macro wic64_execute .request {
+    +wic64_set_request .request
+
     lda wic64_store_instruction_pages
     cmp #wic64_sta_abs_y
     bne +
-    +wic64_set_store_instruction wic64_nop_instruction
 
-+   +wic64_execute .request, $0000
-    tax
+    lda #$00
+    sta wic64_auto_discard_response
 
-    lda wic64_store_instruction_pages
-    cmp #wic64_nop
-    bne +
-    +wic64_reset_store_instruction
-
-+   txa
++   jsr wic64_execute
 }
 
 !macro wic64_execute .request, .response {

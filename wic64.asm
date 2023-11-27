@@ -350,6 +350,14 @@ wic64_initialize: ; EXPORT
     lda #$01
     sta wic64_timeout
 
+    ; automatically discard response if requested,
+    ; only set if execute is called without response
+    ; and no custom store instruction has been set
++   lda wic64_auto_discard_response
+    bne +
+
+    +wic64_set_store_instruction wic64_nop_instruction
+
     ; remember current state of cpu interrupt flag
 +   php
     pla
@@ -386,8 +394,16 @@ wic64_finalize: ; EXPORT
     lda wic64_configured_timeout
     sta wic64_timeout
 
+    ; reset store instruction and auto discard setting
+    lda wic64_auto_discard_response
+    bne +
+
+    +wic64_reset_store_instruction
+    lda #$01
+    sta wic64_auto_discard_response
+
     ; restore user interrupt flag and rts
-    lda .user_irq_flag
++   lda .user_irq_flag
     bne +
 
     cli
@@ -783,6 +799,7 @@ wic64_error_handler_stackpointer: !byte $00
 wic64_handlers_suspended: !byte $01
 wic64_counters: !byte $00, $00, $00
 wic64_nop_instruction: !byte $ea, $ea, $ea
+wic64_auto_discard_response: !byte $01
 
 ;---------------------------------------------------------
 ; Locals
