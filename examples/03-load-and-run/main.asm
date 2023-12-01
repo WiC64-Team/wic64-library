@@ -7,14 +7,16 @@ jmp main
 wic64_include_load_and_run = 1
 !src "wic64.h"
 !src "wic64.asm"
-!src "print.asm"
+!src "macros.asm"
 
 main:
+    +screen_off
     +wic64_load_and_run request
     bcs timeout
     bne error
 
 error:
+    +screen_on
     +wic64_execute status_request, response
     bcs timeout
 
@@ -23,6 +25,7 @@ error:
     rts
 
 timeout:
+    +screen_on
     +print timeout_error_message
     rts
 

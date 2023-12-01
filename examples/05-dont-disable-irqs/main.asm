@@ -7,7 +7,7 @@ jmp main
 ; include wic64 lib
 !src "wic64.h"
 !src "wic64.asm"
-!src "print.asm"
+!src "macros.asm"
 
 ; include sidfile, skipping header data
 * = $1000

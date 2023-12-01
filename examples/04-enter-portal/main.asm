@@ -7,7 +7,7 @@ jmp main
 wic64_include_enter_portal = 1
 !src "wic64.h"
 !src "wic64.asm"
-!src "print.asm"
+!src "macros.asm"
 
 main:
     ; this should simply load the portal program from wic64.net

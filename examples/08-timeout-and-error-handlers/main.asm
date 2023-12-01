@@ -6,7 +6,7 @@ jmp main
 
 !src "wic64.h"
 !src "wic64.asm"
-!src "print.asm"
+!src "macros.asm"
 
 main:
     +wic64_set_timeout_handler timeout
