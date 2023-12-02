@@ -1566,7 +1566,8 @@ reboot_request: !byte "R", WIC64_REBOOT, $00, $00
 
 `!byte "R", WIC64_ECHO, <data-size-l>, <data-size-h>, <data>...`
 
-This command echoes the request payload data back to the client.
+This command echoes the request payload data back to the client. It is used
+to test the basic data transfer functions.
 
 ***
 
@@ -1585,6 +1586,18 @@ is not specified. Can be used to test timeout detection and handling.
 
 Always sends an `INTERNAL_ERROR` (1) and sets the status message to `Test error`.
 Can be used to test error handling.
+
+***
+
+#### `WIC64_IS_HARDWARE` 
+
+`!byte "R", WIC64_IS_HARDWARE, $00, $00`
+
+Returns sucessfully without a response payload on real hardware. Emulators
+should report an `INTERNAL_ERROR` (1) and set the status message to 
+`WiC64 is emulated`. This will allow programs to bail out early if they
+perform actions that don't make sense when running an emulation, such
+as firmware updates or WiFi configuration.
 
 ***
 
