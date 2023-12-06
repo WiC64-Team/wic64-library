@@ -293,7 +293,7 @@ wic64_nop = $ea
 
     lda #<.size
     sta wic64_bytes_to_transfer
-    lda #>.size+1
+    lda #>.size
     sta wic64_bytes_to_transfer+1
 
     jsr wic64_send
@@ -323,7 +323,7 @@ wic64_nop = $ea
 
     lda #<.size
     sta wic64_bytes_to_transfer
-    lda #>.size+1
+    lda #>.size
     sta wic64_bytes_to_transfer+1
 
     jsr wic64_receive
