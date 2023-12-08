@@ -299,6 +299,17 @@ wic64_nop = $ea
     jsr wic64_send
 }
 
+!macro wic64_send .source, ~.size {
+    +wic64_set_request .source
+
+    lda .size
+    sta wic64_bytes_to_transfer
+    lda .size+1
+    sta wic64_bytes_to_transfer+1
+
+    jsr wic64_send
+}
+
 ;---------------------------------------------------------
 
 !macro wic64_receive_header {
@@ -324,6 +335,17 @@ wic64_nop = $ea
     lda #<.size
     sta wic64_bytes_to_transfer
     lda #>.size
+    sta wic64_bytes_to_transfer+1
+
+    jsr wic64_receive
+}
+
+!macro wic64_receive .destination, ~.size {
+    +wic64_set_response .destination
+
+    lda .size
+    sta wic64_bytes_to_transfer
+    lda .size+1
     sta wic64_bytes_to_transfer+1
 
     jsr wic64_receive
