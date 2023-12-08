@@ -382,6 +382,9 @@ wic64_nop = $ea
 !macro wic64_load_and_run .request, .timeout {
     +wic64_set_request .request
 
+    lda wic64_timeout
+    sta wic64_configured_timeout
+
     lda #.timeout
     sta wic64_timeout
 
