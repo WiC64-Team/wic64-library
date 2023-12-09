@@ -699,7 +699,7 @@ If the request times out, the carry flag will be set.
 
 `wic64_finalize`
 
-This function must be calledd after the response has been received. It sets the
+This function must be called after the response has been received. It sets the
 userport back to input mode and restores the interrupt flag to the state it was
 in before the transfer session has been started via
 [`wic64_initialize`](#wic64_initialize). Finally the status code received form
@@ -775,13 +775,13 @@ be performed.
 
 `+wic64_unset_error_handler`
 
-Removed a previously installed error handler.
+Removes a previously installed error handler.
 
 ***
 
 #### `wic64_set_fetch_instruction`
 
-`wic64_set_fetch_instuction <address>`
+`wic64_set_fetch_instruction <address>`
 
 Modifies the fetch instruction `lda $xxxx,y` in [`wic64_send`](#wic64_send) and
 replaces it with the three-byte instruction copied from `<address>`, most likely
@@ -859,11 +859,14 @@ The firmware versioning follows the semantic versioning scheme, consisting of
 major, minor, patch and development version numbers.
 
 The **major version number** will only be increased when the firmware is
-substantially redesigned and/or rewritten, which may introduce breaking changes.
+substantially redesigned and/or rewritten, which may introduce major breaking 
+changes.
 
 The **minor version number** will only be increased when substantial new features
 are implemented. Programs relying on specific features not present in earlier
-minor versions can thus test for the minor version.
+minor versions can thus test for the minor version. Breaking changes may be
+introduced only if it is deemed absolutely necessary, e.g. when a serious design
+flaw needs to be remedied. We will try to avoid this wherever possible.
 
 The **patchlevel version number** is increased when bugfixes, corrections, and
 non-breaking, minor feature additions and/or improvements are added.
@@ -932,7 +935,7 @@ never exceeds 39 characters.
 
 ### HTTP
 
-HTTP commands that are sent using the standard or extended protocol send the user-agent header `User-Agent: WiC64/<version>`.
+HTTP commands that are sent using the standard or extended protocol send the user-agent header `WiC64/<version> (ESP32)`.
 
 Commands send via the legacy protocol continue to send `User-Agent: ESP32HTTPClient`, as implemented in the legacy firmware.
 
@@ -1057,8 +1060,8 @@ Posts `<data>` to the URL previously set via
 [`WIC64_HTTP_POST_URL`](#WIC64_HTTP_POST_URL).
 
 The data will be POSTed with `Content-Type: application/octet-stream` and can be
-accessed on the server side using the HTTP POST variable `data` by default, e.g.
-when using PHP, the data will be accessible via `$_POST["data"]`.
+accessed on the server side using the HTTP POST variable `data` by default. For 
+example, when using PHP, the data will be accessible via `$_POST["data"]`.
 
 <details>
   <summary>Errors</summary>
@@ -1123,6 +1126,17 @@ url_size = * - url
 
 Returns the number of bytes available for reading from the currently opened TCP
 connection as an unsigned 16-bit little-endian value.
+
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CONNECTION_ERROR|WiFi not connected|
+|CONNECTION_ERROR|No IP address assigned|
+|NETWORK_ERROR|TCP connection closed|
+
+</details>
 
 ***
 
