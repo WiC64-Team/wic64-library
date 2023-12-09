@@ -137,6 +137,11 @@ without having to specify an absolute or relative path:
 !source "wic64.asm"
 ```
 
+### Debugging
+
+Please see section [Monitoring log output](https://github.com/WiC64-Team/wic64-firmware#monitoring-log-output) 
+in the [wic64-firmware](https://github.com/WiC64-Team/wic64-firmware) documentation.
+
 ## Example
 
 This example demonstrates basic usage of the library, including timeout and
