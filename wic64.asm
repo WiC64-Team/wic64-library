@@ -1,11 +1,14 @@
 ;---------------------------------------------------------
-; Wic64 library (C)2023 WiC64-Team
+; Wic64 library
+; Copyright 2023 Henning Liebenau
 ;---------------------------------------------------------
 ; Written in Acme cross assembler
 ;
-; Please read the documentation if you want to know how to
-; use this library. This file contains mostly technical
-; comments.
+; Please read the documentation at
+;
+; https://github.com/WiC64-Team/wic64-library/blob/master/README.md
+;
+; This file contains mostly technical comments.
 
 !zone wic64 {
 .origin = *
@@ -60,6 +63,9 @@ wic64_source_pointer_pages = *+1
     iny
     bne -
 
+    ; the following inc instruction will be
+    ; replaced with an lda if a custom fetch
+    ; instruction is installed
 wic64_source_pointer_highbyte_inc = *
     inc wic64_source_pointer_pages+1
     dex
@@ -69,10 +75,14 @@ wic64_source_pointer_highbyte_inc = *
     ldx wic64_bytes_to_transfer
     beq .send_done
 
+    ; skip copying current source pointer position
+    ; if a custom fetch instruction is installed
     lda wic64_fetch_instruction_bytes
     cmp #wic64_lda_abs_y
     bne +
 
+    ; copy the current source pointer position
+    ; to the code sending the remaining bytes
     lda wic64_source_pointer_pages
     sta wic64_source_pointer_bytes
     lda wic64_source_pointer_pages+1
@@ -107,7 +117,7 @@ wic64_send_header: ; EXPORT
     lda #$ff
     sta $dd03
 
-    ; assume standard protocol
+    ; assume standard protocol header sizes
     lda #$04
     sta wic64_request_header_size
     lda #$03
@@ -127,26 +137,24 @@ wic64_send_header: ; EXPORT
     bpl -
 
     ; read protocol byte (first byte)
-    ldy #$00
-    lda .request_header,y
+    lda .request_header
     sta .protocol
 
+    ; check for extended protocol
     cmp #"E"
     bne +
 
-    ; extended protocol
+    ; adjust to extended protocol header sizes
     lda #$06
     sta wic64_request_header_size
     lda #$05
     sta wic64_response_header_size
 
     ; read payload size (third and fourth byte)
-+   ldy #$02
-    lda .request_header,y
++   lda .request_header+2
     sta wic64_transfer_size
 
-    iny
-    lda .request_header,y
+    lda .request_header+3
     sta wic64_transfer_size+1
 
 .send_header:
@@ -158,6 +166,8 @@ wic64_send_header: ; EXPORT
     cpy wic64_request_header_size
     bne -
 
+    ; assume the payload immediately follows the
+    ; request header in memory
 .advance_request_address_beyond_header:
     lda wic64_request
     clc
@@ -206,23 +216,27 @@ wic64_receive_header: ; EXPORT
     sta wic64_transfer_size+1
     sta wic64_bytes_to_transfer+1
 
+    ; test if an error condition is reported
     lda wic64_status
-    beq .no_error_handler
+    beq .no_error_occurred
 
+    ; skip calling error handler if suspended
     lda wic64_handlers_suspended
-    beq .no_error_handler
+    beq .no_error_handler_installed
 
+    ; test if an error handler is installed
     lda wic64_error_handler
     bne .handle_error
     lda wic64_error_handler+1
     bne .handle_error
 
-.no_error_handler
+.no_error_occurred:
+.no_error_handler_installed:
     clc
     lda wic64_status
     rts
 
-.handle_error
+.handle_error:
     +wic64_finalize
     ldx wic64_error_handler_stackpointer
     txs
@@ -249,6 +263,9 @@ wic64_destination_pointer_pages = *+1
     iny
     bne -
 
+    ; the following inc instruction will be
+    ; replaced with an lda if a custom store
+    ; instruction is installed
 wic64_destination_pointer_highbyte_inc = *
     inc wic64_destination_pointer_pages+1
     dex
@@ -258,10 +275,14 @@ wic64_destination_pointer_highbyte_inc = *
     ldx wic64_bytes_to_transfer
     beq .receive_done
 
+    ; skip copying current destination pointer position
+    ; if a custom store instruction is installed
     lda wic64_store_instruction_bytes
     cmp #wic64_sta_abs_y
     bne +
 
+    ; copy the current destination pointer position
+    ; to the code receiving the remaining bytes
     lda wic64_destination_pointer_pages
     sta wic64_destination_pointer_bytes
     lda wic64_destination_pointer_pages+1
@@ -562,7 +583,7 @@ wic64_detect: !zone wic64_detect { ; EXPORT
     lda wic64_status  ; zero flag set => new firmware, clear => legacy firmware
     rts
 
-.request: !byte "R", $00, $00, $00
+.request: !byte "R", WIC64_GET_VERSION_STRING, $00, $00
 }
 
 ;---------------------------------------------------------
@@ -812,7 +833,7 @@ wic64_auto_discard_response: !byte $01
 !if (wic64_include_enter_portal != 0) {
 
 .portal_request:
-!text "R", $01, <.portal_url_size, >.portal_url_size
+!text "R", WIC64_HTTP_GET, <.portal_url_size, >.portal_url_size
 .portal_url:
 !text "http://x.wic64.net/menue.prg"
 .portal_url_end:
@@ -831,12 +852,12 @@ wic64_data_section_end: ; EXPORT
 
         !warn "wic64.asm included at origin ", .origin
 
-        !warn "wic64_send: critical: ", .wic64_send_critical_begin, " - ", .wic64_send_critical_end
+        !warn "wic64_send: critical section: ", .wic64_send_critical_begin, " - ", .wic64_send_critical_end
         !if (>.wic64_send_critical_begin != >.wic64_send_critical_end) {
             !warn "!! wic64_send: critical section crosses page boundary !!"
         }
 
-        !warn "wic64_receive: critical: ", .wic64_receive_critical_begin, " - ", .wic64_receive_critical_end
+        !warn "wic64_receive: critical section: ", .wic64_receive_critical_begin, " - ", .wic64_receive_critical_end
         !if (>.wic64_receive_critical_begin != >.wic64_receive_critical_end) {
             !warn "!! wic64_receive: critical section crosses page boundary !!"
         }

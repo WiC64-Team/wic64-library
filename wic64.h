@@ -1,7 +1,62 @@
 !zone wic64 {
 ;---------------------------------------------------------
-; Constant symbols
+; Command constants
 ;---------------------------------------------------------
+
+WIC64_GET_VERSION_STRING  = $00
+WIC64_GET_VERSION_NUMBERS = $26
+
+WIC64_SCAN_WIFI_NETWORKS       = $0c
+WIC64_CONNECT_WITH_SSID_STRING = $02
+WIC64_CONNECT_WITH_SSID_INDEX  = $0d
+WIC64_IS_CONFIGURED            = $2f
+WIC64_IS_CONNECTED             = $2c
+
+WIC64_GET_MAC  = $14
+WIC64_GET_SSID = $10
+WIC64_GET_RSSI = $11
+WIC64_GET_IP   = $06
+
+WIC64_HTTP_GET         = $01
+WIC64_HTTP_GET_ENCODED = $0f
+WIC64_HTTP_POST_URL    = $28
+WIC64_HTTP_POST_DATA   = $2b
+
+WIC64_TCP_OPEN      = $21
+WIC64_TCP_AVAILABLE = $30
+WIC64_TCP_READ      = $22
+WIC64_TCP_WRITE     = $23
+WIC64_TCP_CLOSE     = $2e
+
+WIC64_GET_SERVER = $12
+WIC64_SET_SERVER = $08
+
+WIC64_GET_TIMEZONE   = $17
+WIC64_SET_TIMEZONE   = $16
+WIC64_GET_LOCAL_TIME = $15
+
+WIC64_UPDATE_FIRMWARE = $27
+
+WIC64_REBOOT = $29
+WIC64_GET_STATUS_MESSAGE = $2a
+WIC64_SET_TIMEOUT = $2d
+WIC64_IS_HARDWARE = $31
+
+WIC64_FORCE_TIMEOUT = $fc
+WIC64_FORCE_ERROR = $fd
+WIC64_ECHO = $fe
+
+WIC64_SUCCESS          = $00
+WIC64_INTERNAL_ERROR   = $01
+WIC64_CLIENT_ERROR     = $02
+WIC64_CONNECTION_ERROR = $03
+WIC64_NETWORK_ERROR    = $04
+WIC64_SERVER_ERROR     = $05
+
+;---------------------------------------------------------
+; Opcode constants
+;---------------------------------------------------------
+
 wic64_lda_abs = $ad
 wic64_sta_abs_y = $99
 wic64_lda_abs_y = $b9
@@ -11,34 +66,14 @@ wic64_nop = $ea
 ;---------------------------------------------------------
 ; Assembly time options
 ;---------------------------------------------------------
-;
-; Define the symbols in the following section before
-; including this file to change the defaults.
-
-;---------------------------------------------------------
-; Set to a non-zero value to enable size optimizations
-; Optimizing for size will decrease performance
 
 !ifndef wic64_optimize_for_size {
     wic64_optimize_for_size = 0
 }
 
-;---------------------------------------------------------
-; Set to a non-zero value to include code to return to the
-; WiC64 portal.
-;
-; Using this option implies wic64_include_load_run = 1
-
 !ifndef wic64_include_enter_portal {
     wic64_include_enter_portal = 0
 }
-
-;---------------------------------------------------------
-; Set to a non-zero value to include code to load and run
-; programs.
-;
-; Will be set by default if wic64_include_enter_portal
-; is used
 
 !ifndef wic64_include_load_and_run {
     !if (wic64_include_enter_portal != 0) {
@@ -51,29 +86,6 @@ wic64_nop = $ea
 ;---------------------------------------------------------
 ; Runtime options
 ;---------------------------------------------------------
-;
-; Set the following memory locations to control runtime
-; behaviour.
-
-;---------------------------------------------------------
-; wic64_timeout
-;
-; This value defines the time to wait for a handshake.
-;
-; Note that this includes waiting for the WiC64 to process
-; the request before sending a response, so this value
-; may need to be adjusted, e.g. when a HTTP request is sent
-; to a server that is slow to respond.
-;
-; The minimum value is $01, which corresponds to a timeout
-; of approximately one second. Setting this value to zero
-; sets the value to $01.
-;
-; If a timeout occurs, the carry flag will be set to signal
-; a timeout to the calling routine.
-;
-; Higher values will increase the timeout in a non-linear
-; fashion.
 
 !macro wic64_set_timeout .timeout {
     lda #.timeout
@@ -82,19 +94,6 @@ wic64_nop = $ea
 }
 
 ;---------------------------------------------------------
-; wic64_dont_disable_irqs
-;
-; Set to a nonzero value to prevent disabling of
-; interrupts during transfers.
-;
-; Note that the interrupt flag will always be reset
-; to its previous state after a transfer has completed.
-;
-; This option merely prevents setting the interrupt
-; flag *during* transfers.
-;
-; The default is to disable irqs during transfer.
-;
 
 !macro wic64_dont_disable_irqs {
     lda #$01
@@ -107,19 +106,6 @@ wic64_nop = $ea
 }
 
 ;---------------------------------------------------------
-; Setup an address to jump to in case a timeout
-; occurs in any of the transfer routines that are called
-; during command execution. This address needs to be set up
-; before every new request, as it is reset in wic64_finalize.
-;
-; After a timeout occurs, the current stack level is reset
-; to the level from which the transfer routine in which the
-; timeout occurred was called, e.g. it will resemble a branch
-; instruction.
-;
-; This is mainly useful if you're using the low level api
-; calls, since it avoids having to check for a timeout after
-; every single call. See the documentation for details.
 
 !macro wic64_set_timeout_handler .addr {
     lda #<.addr
@@ -135,6 +121,8 @@ wic64_nop = $ea
     sta wic64_timeout_handler
     sta wic64_timeout_handler+1
 }
+
+;---------------------------------------------------------
 
 !macro wic64_set_error_handler .addr {
     lda #<.addr
@@ -152,34 +140,6 @@ wic64_nop = $ea
 }
 
 ;---------------------------------------------------------
-; set the source pointer to read request data from
-; in wic64_send (self-modifying)
-
-!macro wic64_set_source_pointer_from .addr {
-    lda .addr
-    sta wic64_source_pointer_pages
-    lda .addr+1
-    sta wic64_source_pointer_pages+1
-}
-
-;---------------------------------------------------------
-; set the destination pointer to write response data to
-; in wic64_receive (self-modifying)
-
-!macro wic64_set_destination_pointer_from .addr {
-    lda wic64_store_instruction_pages
-    cmp #wic64_sta_abs_y ; opcode of sta $nnnn,y
-    bne .done
-
-    lda .addr
-    sta wic64_destination_pointer_pages
-    lda .addr+1
-    sta wic64_destination_pointer_pages+1
-.done
-}
-
-;---------------------------------------------------------
-; set/reset store operation(s) in wic64_receive
 
 !macro wic64_set_store_instruction .addr {
     ldy #$02
@@ -198,7 +158,6 @@ wic64_nop = $ea
 }
 
 ;---------------------------------------------------------
-; set/reset fetch operation(s) in wic64_send
 
 !macro wic64_set_fetch_instruction .addr {
     ldy #$02
@@ -217,49 +176,20 @@ wic64_nop = $ea
 }
 
 ;---------------------------------------------------------
-; Specify the start address of memory area containing the
-; request to send to the WiC64
+; Transfer functions
+;---------------------------------------------------------
+
+!macro wic64_initialize {
+    jsr wic64_initialize
+}
+
+;---------------------------------------------------------
 
 !macro wic64_set_request .request {
     lda #<.request
     sta wic64_request
     lda #>.request
     sta wic64_request+1
-}
-
-;---------------------------------------------------------
-; Specify the start address of memory area where the
-; response from the WiC64 should be stored to
-
-!macro wic64_set_response .response {
-    lda #<.response
-    sta wic64_response
-    lda #>.response
-    sta wic64_response+1
-}
-
-;---------------------------------------------------------
-; Make sure the next call to wic64_send or wic64_receive
-; will transfer all bytes not sent or received so far
-
-!macro wic64_prepare_transfer_of_remaining_bytes {
-    jsr wic64_prepare_transfer_of_remaining_bytes
-}
-
-;---------------------------------------------------------
-; Substract the number of bytes transferred in the previous
-; call to wic64_send or wic64_receive from the number of
-; bytes remaining to be transferred in the currend request
-; or response
-
-!macro wic64_update_transfer_size_after_transfer {
-    jsr wic64_update_transfer_size_after_transfer
-}
-
-;---------------------------------------------------------
-
-!macro wic64_initialize {
-    jsr wic64_initialize
 }
 
 ;---------------------------------------------------------
@@ -279,8 +209,6 @@ wic64_nop = $ea
     +wic64_prepare_transfer_of_remaining_bytes
     jsr wic64_send
 }
-
-;---------------------------------------------------------
 
 !macro wic64_send .source {
     +wic64_set_request .source
@@ -314,6 +242,15 @@ wic64_nop = $ea
 
 !macro wic64_receive_header {
     jsr wic64_receive_header
+}
+
+;---------------------------------------------------------
+
+!macro wic64_set_response .response {
+    lda #<.response
+    sta wic64_response
+    lda #>.response
+    sta wic64_response+1
 }
 
 ;---------------------------------------------------------
@@ -422,6 +359,10 @@ wic64_nop = $ea
 }
 
 ;---------------------------------------------------------
+; Internal macros
+;---------------------------------------------------------
+
+;---------------------------------------------------------
 ; Define macro wic64_wait_for_handshake
 ;---------------------------------------------------------
 ;
@@ -497,54 +438,58 @@ wic64_nop = $ea
     }
 }
 
+;---------------------------------------------------------
+; set the source pointer to read request data from
+; in wic64_send (self-modifying code)
+
+!macro wic64_set_source_pointer_from .addr {
+    ; only set the pointer if no custom fetch
+    ; operation has been installed
+    lda wic64_fetch_instruction_pages
+    cmp #wic64_lda_abs_y
+    bne .done
+
+    lda .addr
+    sta wic64_source_pointer_pages
+    lda .addr+1
+    sta wic64_source_pointer_pages+1
+.done
 }
 
-WIC64_GET_VERSION_STRING  = $00
-WIC64_GET_VERSION_NUMBERS = $26
+;---------------------------------------------------------
+; set the destination pointer to write response data to
+; in wic64_receive (self-modifying code)
 
-WIC64_SCAN_WIFI_NETWORKS       = $0c
-WIC64_CONNECT_WITH_SSID_STRING = $02
-WIC64_CONNECT_WITH_SSID_INDEX  = $0d
-WIC64_IS_CONFIGURED            = $2f
-WIC64_IS_CONNECTED             = $2c
+!macro wic64_set_destination_pointer_from .addr {
+    ; only set the pointer if no custom store
+    ; operation has been installed
+    lda wic64_store_instruction_pages
+    cmp #wic64_sta_abs_y
+    bne .done
 
-WIC64_GET_MAC  = $14
-WIC64_GET_SSID = $10
-WIC64_GET_RSSI = $11
-WIC64_GET_IP   = $06
+    lda .addr
+    sta wic64_destination_pointer_pages
+    lda .addr+1
+    sta wic64_destination_pointer_pages+1
+.done
+}
 
-WIC64_HTTP_GET         = $01
-WIC64_HTTP_GET_ENCODED = $0f
-WIC64_HTTP_POST_URL    = $28
-WIC64_HTTP_POST_DATA   = $2b
+;---------------------------------------------------------
+; Make sure the next call to wic64_send or wic64_receive
+; will transfer all bytes not sent or received so far.
 
-WIC64_TCP_OPEN      = $21
-WIC64_TCP_AVAILABLE = $30
-WIC64_TCP_READ      = $22
-WIC64_TCP_WRITE     = $23
-WIC64_TCP_CLOSE     = $2e
+!macro wic64_prepare_transfer_of_remaining_bytes {
+    jsr wic64_prepare_transfer_of_remaining_bytes
+}
 
-WIC64_GET_SERVER = $12
-WIC64_SET_SERVER = $08
+;---------------------------------------------------------
+; Substract the number of bytes transferred in the previous
+; call to wic64_send or wic64_receive from the number of
+; bytes remaining to be transferred in the currend request
+; or response
 
-WIC64_GET_TIMEZONE   = $17
-WIC64_SET_TIMEZONE   = $16
-WIC64_GET_LOCAL_TIME = $15
+!macro wic64_update_transfer_size_after_transfer {
+    jsr wic64_update_transfer_size_after_transfer
+}
 
-WIC64_UPDATE_FIRMWARE = $27
-
-WIC64_REBOOT = $29
-WIC64_GET_STATUS_MESSAGE = $2a
-WIC64_SET_TIMEOUT = $2d
-WIC64_IS_HARDWARE = $31
-
-WIC64_FORCE_TIMEOUT = $fc
-WIC64_FORCE_ERROR = $fd
-WIC64_ECHO = $fe
-
-WIC64_SUCCESS          = $00
-WIC64_INTERNAL_ERROR   = $01
-WIC64_CLIENT_ERROR     = $02
-WIC64_CONNECTION_ERROR = $03
-WIC64_NETWORK_ERROR    = $04
-WIC64_SERVER_ERROR     = $05
+}
