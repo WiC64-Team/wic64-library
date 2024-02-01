@@ -754,6 +754,10 @@ wic64_load_and_run: ; EXPORT
     ldx #$ff
     txs
 
+    ; clear keyboard buffer
+    lda #$00
+    sta $c6
+
     ; reset system to defaults
 +   jsr .kernal_init_io
     jsr .kernal_reset_vectors
