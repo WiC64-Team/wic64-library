@@ -557,8 +557,13 @@ wic64_detect: !zone wic64_detect { ; EXPORT
     ; data, as this avoids having to reserve memory to store the response. Since
     ; the response size never exceeds 30 bytes, the loop can be kept simple.
 
+    ; A small delay is required here to give the firmware enough time to
+    ; properly reqister each handshake.
+
     ldy wic64_response_size
 -   lda $dd01
+    nop
+    nop
     dey
     bne -
 
