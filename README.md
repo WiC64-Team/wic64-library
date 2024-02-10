@@ -314,7 +314,7 @@ For example, when requesting data from a remote URL, the remote server may
 simply take additional time to respond, either because the network is slow, the
 server is under increased load, or the server simply needs some time to generate
 the response. In this case, you can either generally increase the client side
-timeout using [`wic64_set_timeout`](#wic64_set_timeout), or use the three
+timeout using [`WIC64_SET_TRANSFER_TIMEOUT`](#WIC64_SET_TRANSFER_TIMEOUT), or use the three
 argument form of [`wic64_execute`](#wic64_execute) to increase the timeout for a
 specific request only. This will grant the WiC64 more time to generate the
 response before the C64 concludes that the request has timed out. The default
@@ -324,7 +324,7 @@ sufficient for most cases.
 Likewise, if you use the low level functions to send a request payload, and you
 need some time to generate the data (e.g. when POSTing a disk image using
 multiple calls to [`wic64_send`](#wic64_send)), you can increase the server-side
-timeout of the WiC64 by using the [`WIC64_SET_TIMEOUT`](#WIC64_SET_TIMEOUT)
+timeout of the WiC64 by using the [`WIC64_SET_TRANSFER_TIMEOUT`](#WIC64_SET_TRANSFER_TIMEOUT)
 command, which increases the time the WiC64 waits for the C64 to continue the
 current transfer.
 
@@ -334,6 +334,13 @@ cleanly aborted, and then return with the carry flag set. Thus you should always
 test the carry flag after calling these functions. How to handle a timeout
 condition largely depends on the application. You may simply retry the request
 silently for a few times, or have the user decide whether to retry or abort.
+
+Note that apart from [`WIC64_SET_TRANSFER_TIMEOUT`](#WIC64_SET_TRANSFER_TIMEOUT) 
+there is also [`WIC64_SET_REMOTE_TIMEOUT`](#WIC64_SET_REMOTE_TIMEOUT). While the 
+server-side *transfer timeout* specifies the time the WiC64 waits for the C64 to 
+start or continue to receive the reponse, the server-side *remote timeout* specifies 
+the time the WiC64 waits for a remote server to generate a response. See the respective 
+commands for details.
 
 #### Errors
 
@@ -396,7 +403,7 @@ potential errors, as in
 
 Instead of testing for a timeout or error condition after each API call, general
 timeout and error handling routines may be registered via
-[`wic64_set_timeout_handler`](#wic64_set_timeout_handler) and
+[`WIC64_SET_TRANSFER_TIMEOUT_handler`](#WIC64_SET_TRANSFER_TIMEOUT_handler) and
 [`wic64_set_error_handler`](#wic64_set_error_handler). If present, the
 respective handler address will be called via an indirect ``jmp``, with the
 stack pointer reset to the value that was present when the handler was
@@ -457,7 +464,7 @@ in the response.
 The optional `<timeout>` argument specifies the client side
 timeout to use while executing this request. If no timeout
 argument is specified, the value set using
-[`wic64_set_timeout`](#wic64_set_timeout) is used.
+[`WIC64_SET_TRANSFER_TIMEOUT`](#WIC64_SET_TRANSFER_TIMEOUT) is used.
 
 > [!NOTE]
 > The response will simply be received to the area starting at `<response>` in
@@ -528,7 +535,7 @@ In general, every function that performs a send or receive may time out, while
 status code from the WiC64 in the response header and load it into the
 accumulator before returning, so that you can check the zero-flag to detect an
 error condition. For semi-automated timeout and error handling, see
-[`wic64_set_timeout_handler`](#wic64_set_timeout_handler) and
+[`WIC64_SET_TRANSFER_TIMEOUT_handler`](#WIC64_SET_TRANSFER_TIMEOUT_handler) and
 [`wic64_set_error_handler`](#wic64_set_error_handler).
 
 ```asm
@@ -628,7 +635,7 @@ unsigned 16-bit litte-endian value.
 
 Note that if the C64 requires processing time to generate the payload in between
 discrete transfer steps, the WiC64 transfer timeout may need to be increased
-using [`WIC64_SET_TIMEOUT`](#WIC64_SET_TIMEOUT) before starting the transfer
+using [`WIC64_SET_TRANSFER_TIMEOUT`](#WIC64_SET_TRANSFER_TIMEOUT) before starting the transfer
 session.
 
 If the request times out, the carry flag will be set.
@@ -694,7 +701,7 @@ unsigned 16-bit litte-endian value.
 
 Note that if the C64 requires processing time to handle the payload data in
 between discrete transfer steps, the WiC64 transfer timeout may need to be
-increased using the command [`WIC64_SET_TIMEOUT`](#WIC64_SET_TIMEOUT).
+increased using the command [`WIC64_SET_TRANSFER_TIMEOUT`](#WIC64_SET_TRANSFER_TIMEOUT).
 
 If the request times out, the carry flag will be set.
 
@@ -720,9 +727,9 @@ a non-zero status code is received in the response header.
 
 ***
 
-#### `wic64_set_timeout`
+#### `WIC64_SET_TRANSFER_TIMEOUT`
 
-`+wic64_set_timeout <timeout>`
+`+WIC64_SET_TRANSFER_TIMEOUT <timeout>`
 *(default: $02, about two seconds)*
 
 Sets the maximum time to wait for a handshake from the WiC64 before assuming
@@ -741,7 +748,7 @@ calling routine.
 
 ***
 
-#### `wic64_set_timeout_handler`
+#### `wic_set_timeout_handler`
 
 `+wic64_set_timeout_handler <address>`
 
@@ -1411,11 +1418,11 @@ The response will not exceed 16 bytes (15 characters + nullbyte).
 
 ***
 
-#### `WIC64_SET_TIMEOUT`
+#### `WIC64_SET_TRANSFER_TIMEOUT`
 
-`!byte "R", WIC64_SET_TIMEOUT, $01, $00, <seconds>`
+`!byte "R", WIC64_SET_TRANSFER_TIMEOUT, $01, $00, <seconds>`
 
-This command sets the *server-side* timeout to use for the next request, i.e. it
+This command sets the *server-side* transfer timeout to use for the next request, i.e. it
 sets the number of seconds the WiC64 will wait for the C64 to continue a
 transfer before assuming that the transfer has timed out.
 
@@ -1427,6 +1434,37 @@ set before each request that requires a custom setting.
 This is only required in case you are sending a request payload in discrete
 chunks and need more time on the C64 side to prepare the next chunk of data, for
 example when reading the data from disk or generating it programatically.
+
+<details>
+  <summary>Errors</summary>
+
+|Code|Message |
+|:---|:-------|
+|CLIENT_ERROR|ESP timeout not specified|
+|CLIENT_ERROR|ESP timeout must be >= 1 second|
+
+</details>
+
+***
+
+#### `WIC64_SET_REMOTE_TIMEOUT`
+
+`!byte "R", WIC64_SET_REMOTE_TIMEOUT, $01, $00, <seconds>`
+
+This command sets the *server-side* remote request timeout to use for the next request, 
+i.e. it sets the number of seconds the WiC64 will wait for a remote server to serve a request
+before assuming that the request has timed out.
+
+The server-side request timeout value will be reset to the default value of five seconds
+after the request following this request has been served, regardless of whether
+it was served successfully. This means that the server-side timeout needs to be
+set before each request that requires a custom setting.
+
+This is required if the remote server needs more time to serve the request, for example
+when generating the response dynamically. Note that you will most likely also need to 
+increase the client side timeout in this case, so that not only the WiC64 is more patient with the 
+remote server, but the C64 is more patient when waiting for the response
+from the WiC64 as well.
 
 <details>
   <summary>Errors</summary>
@@ -1574,12 +1612,12 @@ version of the newly installed firmware.
   <summary>Example from wic64-update/update.asm:</summary>
 
 ```asm
-+wic64_set_timeout $10
++WIC64_SET_TRANSFER_TIMEOUT $10
 +wic64_initialize
 +wic64_send_header reboot_request
 +wic64_wait_for_handshake
 +wic64_finalize
-+wic64_set_timeout $02
++WIC64_SET_TRANSFER_TIMEOUT $02
 
 [...]
 
