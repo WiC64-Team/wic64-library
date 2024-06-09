@@ -463,8 +463,7 @@ in the response.
 
 The optional `<timeout>` argument specifies the client side
 timeout to use while executing this request. If no timeout
-argument is specified, the value set using
-[`WIC64_SET_TRANSFER_TIMEOUT`](#WIC64_SET_TRANSFER_TIMEOUT) is used.
+argument is specified, a default of 2 seconds will be used.
 
 > [!NOTE]
 > The response will simply be received to the area starting at `<response>` in
