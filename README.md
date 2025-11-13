@@ -1193,7 +1193,7 @@ Writes the specified `<data>` to the TCP connection previously opened by
 ***
 
 #### `WIC64_TCP_CLOSE`
-`!byte "R", WIC64_TCP_READ, $00, $00`
+`!byte "R", WIC64_TCP_CLOSE, $00, $00`
 
 Closes the TCP connection previously opened by
 [`WIC64_TCP_OPEN`](#WIC64_TCP_OPEN).
