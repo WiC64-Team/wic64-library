@@ -502,11 +502,61 @@ wic64_execute: ; EXPORT
     +wic64_receive_header
     bcs +
 
+!if (wic64_include_response_limit != 0) {
+    jsr wic64_response_fits
+    bcs .too_large
+}
+
     +wic64_receive
     bcs +
 
     +wic64_finalize
 +   rts
+
+!if (wic64_include_response_limit != 0) {
+
+.too_large:
+    ; receive the response without storing it, so that the ESP finishes
+    ; the transfer; it ends with carry set either way
+    lda #$00
+    sta wic64_auto_discard_response
+    +wic64_set_store_instruction wic64_nop_instruction
+    +wic64_receive
+    bcs +
+    +wic64_finalize
+    sec
++   rts
+
+;---------------------------------------------------------
+; wic64_response_fits
+;---------------------------------------------------------
+
+wic64_response_fits:
+    ; Returns carry set if a response limit is set (wic64_response_limit
+    ; not $0000) and the announced response size exceeds it.
+
+    lda wic64_response_limit
+    ora wic64_response_limit+1
+    beq .fits
+
+    lda wic64_response_size+2
+    ora wic64_response_size+3
+    bne .exceeds
+
+    lda wic64_response_limit
+    cmp wic64_response_size
+    lda wic64_response_limit+1
+    sbc wic64_response_size+1
+    bcc .exceeds
+
+.fits:
+    clc
+    rts
+
+.exceeds:
+    sec
+    rts
+}
 
 ;---------------------------------------------------------
 ; wic64_detect
@@ -804,6 +854,9 @@ wic64_data_section_start: ; EXPORT
 ;---------------------------------------------------------
 
 wic64_timeout:              !byte $02    ; EXPORT
+!if (wic64_include_response_limit != 0) {
+wic64_response_limit:       !word $0000
+}
 wic64_dont_disable_irqs:    !byte $00    ; EXPORT
 wic64_request_header_size:  !byte $04
 wic64_response_header_size: !byte $03
