@@ -1,4 +1,4 @@
-## Unreleased
+## Version 1.2.0
 
 - Added the assembly time option `wic64_include_response_limit` and the macro
   `wic64_set_response_limit`
