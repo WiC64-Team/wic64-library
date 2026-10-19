@@ -268,6 +268,16 @@ automatically.
 
 ***
 
+### `wic64_include_response_limit`
+*(default: 0)*
+
+If set to a non-zero value, the macro
+[`wic64_set_response_limit`](#wic64_set_response_limit) and the size check it
+enables in [`wic64_execute`](#wic64_execute) will be included in the assembly.
+If not set, the assembled code is the same as without this option.
+
+***
+
 ### `wic64_optimize_for_size`
 *(default: 0)*
 
@@ -472,7 +482,8 @@ argument is specified, a default of 2 seconds will be used.
 > writing will simply continue at $0000. Likewise, no precautions are taken to
 > prevent writing into the IO area. If you want to check the response size
 > before storing the response, you will have to use the low level functions and
-> conduct the transfer yourself.
+> conduct the transfer yourself, or set a limit with
+> [`wic64_set_response_limit`](#wic64_set_response_limit).
 
 ***
 
@@ -830,6 +841,40 @@ avoid disrupting the current receive transfer.
 `wic64_reset_store_instruction`
 
 Resets the store instruction to the default `sta $xxxx,y`.
+
+***
+
+#### `wic64_set_response_limit`
+
+`+wic64_set_response_limit <bytes>`
+*(default: $0000, no limit)*
+
+Only available if [`wic64_include_response_limit`](#wic64_include_response_limit)
+is set to a non-zero value.
+
+Sets the largest response [`wic64_execute`](#wic64_execute) will store, usually
+the size of the response buffer. If the response header announces more bytes,
+the response is received without storing any of it, so that the WiC64 can
+finish the transfer, and `wic64_execute` returns with the carry flag set.
+Memory after the response buffer is left untouched. This includes responses
+over 64kb to requests using the [extended protocol](#extended-protocol-e).
+
+As a timeout also sets the carry flag, check `wic64_response_size` to tell the
+two apart: after a refused response it holds the announced size, which is
+larger than the limit. For a request using the standard protocol, only its
+lower 16 bits belong to the response.
+
+See `examples/09-response-limit`, which also tests these cases.
+
+```asm
+  +wic64_set_response_limit 256
+  +wic64_execute request, response
+  bcs timeout_or_too_large
+```
+
+A limit of $0000 turns the check off again. The low level functions
+[`wic64_receive_header`](#wic64_receive_header) and
+[`wic64_receive`](#wic64_receive) are not affected.
 
 ***
 

@@ -84,8 +84,25 @@ wic64_nop = $ea
     }
 }
 
+!ifndef wic64_include_response_limit {
+    wic64_include_response_limit = 0
+}
+
 ;---------------------------------------------------------
 ; Runtime options
+;---------------------------------------------------------
+
+!if (wic64_include_response_limit != 0) {
+
+!macro wic64_set_response_limit .limit {
+    lda #<.limit
+    sta wic64_response_limit
+    lda #>.limit
+    sta wic64_response_limit+1
+}
+
+}
+
 ;---------------------------------------------------------
 
 !macro wic64_set_timeout .timeout {
