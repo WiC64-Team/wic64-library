@@ -523,9 +523,45 @@ wic64_execute: ; EXPORT
     +wic64_set_store_instruction wic64_nop_instruction
     +wic64_receive
     bcs +
+
+    ; an "E" response also has the upper 16 bits of the size: 64kb more
+    ; for each, received as two times 32kb
+    lda .protocol
+    cmp #"E"
+    bne .drained
+
+    lda wic64_response_size+2
+    sta wic64_blocks_to_drain
+    lda wic64_response_size+3
+    sta wic64_blocks_to_drain+1
+
+.drain_block:
+    lda wic64_blocks_to_drain
+    ora wic64_blocks_to_drain+1
+    beq .drained
+
+    jsr .drain_32k
+    bcs +
+    jsr .drain_32k
+    bcs +
+
+    lda wic64_blocks_to_drain
+    bne ++
+    dec wic64_blocks_to_drain+1
+++  dec wic64_blocks_to_drain
+    jmp .drain_block
+
+.drained:
     +wic64_finalize
     sec
 +   rts
+
+.drain_32k:
+    lda #$00
+    sta wic64_bytes_to_transfer
+    lda #$80
+    sta wic64_bytes_to_transfer+1
+    jmp wic64_receive
 
 ;---------------------------------------------------------
 ; wic64_response_fits
@@ -539,11 +575,17 @@ wic64_response_fits:
     ora wic64_response_limit+1
     beq .fits
 
+    ; only an "E" response header has the upper 16 bits of the size; after
+    ; an "R" response they are left over from an earlier "E" response
+    lda .protocol
+    cmp #"E"
+    bne +
+
     lda wic64_response_size+2
     ora wic64_response_size+3
     bne .exceeds
 
-    lda wic64_response_limit
++   lda wic64_response_limit
     cmp wic64_response_size
     lda wic64_response_limit+1
     sbc wic64_response_size+1
@@ -856,6 +898,7 @@ wic64_data_section_start: ; EXPORT
 wic64_timeout:              !byte $02    ; EXPORT
 !if (wic64_include_response_limit != 0) {
 wic64_response_limit:       !word $0000
+wic64_blocks_to_drain:      !word $0000
 }
 wic64_dont_disable_irqs:    !byte $00    ; EXPORT
 wic64_request_header_size:  !byte $04

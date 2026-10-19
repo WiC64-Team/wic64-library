@@ -856,11 +856,15 @@ Sets the largest response [`wic64_execute`](#wic64_execute) will store, usually
 the size of the response buffer. If the response header announces more bytes,
 the response is received without storing any of it, so that the WiC64 can
 finish the transfer, and `wic64_execute` returns with the carry flag set.
-Memory after the response buffer is left untouched.
+Memory after the response buffer is left untouched. This includes responses
+over 64kb to requests using the [extended protocol](#extended-protocol-e).
 
 As a timeout also sets the carry flag, check `wic64_response_size` to tell the
 two apart: after a refused response it holds the announced size, which is
-larger than the limit.
+larger than the limit. For a request using the standard protocol, only its
+lower 16 bits belong to the response.
+
+See `examples/09-response-limit`, which also tests these cases.
 
 ```asm
   +wic64_set_response_limit 256

@@ -5,6 +5,8 @@
   - With a limit set, `wic64_execute` doesn't store a response that is larger
     than the limit: it receives the response without storing it and returns
     with carry set, so that memory after the response buffer stays intact
+  - Responses over 64kb to "E" requests are refused and received completely
+  - Example 09 tests the limit
   - Without the option, the assembled code is unchanged
 
 ## Version 1.1.0
